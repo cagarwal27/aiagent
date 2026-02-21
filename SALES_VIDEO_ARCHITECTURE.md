@@ -57,7 +57,7 @@ Existing market validation: Tavus ($28M raised), HeyGen ($60M), Synthesia ($90M)
 
 | Sponsor | Role | How It's Used |
 |---------|------|---------------|
-| **MiniMax M2.5** | Script writing LLM + video generation + image generation | The @convex-dev/agent brain for research analysis and script writing. Hailuo for video scenes. image-01 for scene stills. |
+| **MiniMax M2.5** | Script writing LLM + image generation (+ video stretch goal) | The @convex-dev/agent brain for research analysis and script writing. image-01 for scene visuals (fast, seconds). Hailuo video as stretch goal. |
 | **rtrvr.ai** | Prospect research | `/scrape` endpoint fetches prospect company pages, recent news, product info. This is the data the scripts are personalized FROM. |
 | **ElevenLabs** | AI narration voice | Flash v2.5 generates the voiceover for each video. Different voice per "sender persona." Prospect name spoken naturally. |
 | **Speechmatics** | Voice input (stretch) | Operator can speak campaign briefs instead of typing. "Generate videos for these 5 fintech prospects focusing on compliance pain." |
@@ -107,16 +107,18 @@ Existing market validation: Tavus ($28M raised), HeyGen ($60M), Synthesia ($90M)
 │  │    │     Store audio files in Convex file storage      │ │
 │  │    ↓     Status: "generating_voice" → "voice_ready"    │ │
 │  │                                                        │ │
-│  │  Step 4: VISUALS ──→ MiniMax image-01 + Hailuo video  │ │
-│  │    │     Generate scene images → animate to video      │ │
-│  │    │     Poll for completion via scheduled functions    │ │
-│  │    │     Store video files in Convex file storage      │ │
-│  │    ↓     Status: "generating_video" → "video_ready"    │ │
+│  │  Step 4: VISUALS ──→ MiniMax image-01                  │ │
+│  │    │     Generate scene images (fast — seconds each)   │ │
+│  │    │     Store image files in Convex file storage      │ │
+│  │    ↓     Status: "generating_visuals" → "complete"     │ │
 │  │                                                        │ │
-│  │  Step 5: ASSEMBLE                                      │ │
-│  │          Combine voice + video references              │ │
-│  │          Status: "complete"                             │ │
-│  │          Final video playable from dashboard           │ │
+│  │  NO "ASSEMBLE" STEP — the frontend IS the compositor.  │ │
+│  │  It plays scene images in sequence synced with audio.  │ │
+│  │  The "video" is a browser-based narrated slideshow.    │ │
+│  │                                                        │ │
+│  │  STRETCH: Hailuo video clips (async, 1-5 min each)    │ │
+│  │  If time permits, generate video from images.          │ │
+│  │  Poll via scheduled functions. Replace static images.  │ │
 │  └────────────────────────────────────────────────────────┘ │
 │                                                             │
 │  ┌────────────────────────────────────────────────────────┐ │
@@ -152,7 +154,7 @@ Existing market validation: Tavus ($28M raised), HeyGen ($60M), Synthesia ($90M)
 │  │  scrapeProspect   — rtrvr.ai /scrape → research data  │ │
 │  │  generateVoice    — ElevenLabs TTS → audio file       │ │
 │  │  generateImage    — MiniMax image-01 → image file     │ │
-│  │  generateVideo    — MiniMax Hailuo → video file       │ │
+│  │  generateVideo    — MiniMax Hailuo (STRETCH GOAL)     │ │
 │  │  pollVideoStatus  — scheduled fn, checks completion   │ │
 │  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
@@ -193,7 +195,8 @@ export default defineSchema({
     // Pipeline status
     status: v.string(),
     // "queued" → "researching" → "scripting" → "generating_voice"
-    // → "generating_visuals" → "assembling" → "complete" → "failed"
+    // → "generating_visuals" → "complete" → "failed"
+    // NO "assembling" step — the frontend plays assets in sequence
 
     // Research output (from rtrvr.ai)
     researchData: v.optional(v.string()),
@@ -210,17 +213,14 @@ export default defineSchema({
       fullNarration: v.string(),         // complete voiceover text
     })),
 
-    // Generated assets
-    voiceFileId: v.optional(v.id("_storage")),
+    // Generated assets (per-scene)
     sceneAssets: v.optional(v.array(v.object({
       sceneNumber: v.number(),
-      imageFileId: v.optional(v.id("_storage")),
-      videoFileId: v.optional(v.id("_storage")),
-      voiceFileId: v.optional(v.id("_storage")),
+      imageFileId: v.optional(v.id("_storage")),  // MiniMax image-01 (primary)
+      videoFileId: v.optional(v.id("_storage")),  // MiniMax Hailuo (stretch goal)
+      voiceFileId: v.optional(v.id("_storage")),  // ElevenLabs per-scene audio
     }))),
-
-    // Final output
-    finalVideoUrl: v.optional(v.string()),
+    // No finalVideoUrl — the frontend plays scenes in sequence with synced audio
 
     // Tracking
     startedAt: v.optional(v.number()),
@@ -254,11 +254,11 @@ export default defineSchema({
 | Feature | How It's Used | Why It Matters |
 |---------|--------------|----------------|
 | **@convex-dev/agent** | Script-writing agent with tools, persistent threads, vector search for similar past scripts | Core of the AI experience — not just API calls, a real agent with memory |
-| **Durable workflows** | Each prospect's 5-step pipeline (research → script → voice → video → assemble) survives crashes, retries on failure | 10 concurrent workflows running simultaneously is the hero demo moment |
+| **Durable workflows** | Each prospect's 4-step pipeline (research → script → voice → images) survives crashes, retries on failure | 10 concurrent workflows running simultaneously is the hero demo moment |
 | **Real-time queries** | Dashboard auto-updates as each prospect moves through pipeline stages. Zero polling, zero WebSocket code. | The audience SEES pipelines progressing live — this is what makes the demo land |
 | **File storage** | Every generated asset (audio, images, video clips) stored in Convex, referenced by ID in the database | Files appear in the UI the instant they're stored — reactive file serving |
 | **Delta streaming** | Script text streams to the UI word-by-word as the agent writes it | The audience watches a personalized script being written live |
-| **Scheduled functions** | Poll MiniMax Hailuo for video completion every 15 seconds | Async video generation tracked without blocking — Convex handles the polling loop |
+| **Scheduled functions** | (Stretch) Poll MiniMax Hailuo for video clip completion every 15s. Also: scheduled campaign health checks. | Async generation tracked without blocking — Convex handles the polling loop |
 | **ACID mutations** | Status transitions are atomic — "researching" → "scripted" with script data in one transaction | No torn state. Dashboard never shows inconsistent data. |
 | **Vector search** | Find past scripts for similar companies/industries to improve new scripts | Agent learns from history — "write like the script that worked for a similar fintech company" |
 | **HTTP actions** | Webhook endpoint for campaign triggers, API for future integrations | Extensible — could connect to CRM triggers |
@@ -267,40 +267,71 @@ export default defineSchema({
 
 ---
 
-## How MiniMax Video Generation Works with Convex
+## How the "Video" Actually Works (Honest Version)
 
-MiniMax Hailuo is async — you submit a job, poll for completion, then download the result. This maps perfectly to Convex's scheduled function pattern:
+### The reality of AI video generation
+
+MiniMax Hailuo generates 5-10 second video clips. They look like AI art — cinematic, stylized, abstract. They do NOT look like polished sales videos. Each clip takes 1-5 minutes and has a 5 RPM rate limit. Compositing audio onto video requires ffmpeg, which doesn't run in Convex actions.
+
+### What we actually build: a narrated slideshow
+
+The "video" is a **frontend-rendered presentation** that plays scene images in sequence with synced voiceover audio. The browser IS the compositor. No ffmpeg. No server-side rendering.
+
+This is what most AI video tools actually do under the hood — Synthesia's "videos" are animated images with synced audio. The composition happens in the player.
 
 ```
-1. Action: Call MiniMax Hailuo API to start video generation
-   ↓ Returns task_id
-2. Mutation: Store task_id in generationJobs table with status "processing"
-   ↓ Schedule a polling function
-3. Scheduled action (every 15s): Call MiniMax to check task_id status
-   ↓ If still processing: reschedule. If done: continue.
-4. Action: Download completed video from MiniMax
-   ↓ Store in Convex file storage
-5. Mutation: Update generationJobs with resultFileId, status "complete"
-   ↓ Update prospect's sceneAssets with the new video file
-6. UI: Reactively shows the new video thumbnail (zero code for this)
+Per scene:
+  MiniMax image-01 → generates scene image (2-5 seconds, synchronous)
+  ElevenLabs TTS → generates scene voiceover (5-10 seconds, synchronous)
+  Both stored in Convex file storage
+
+Frontend playback:
+  Scene 1 image displays → Scene 1 audio plays → (scene duration elapses)
+  Scene 2 image fades in → Scene 2 audio plays → ...
+  Scene 3 image fades in → Scene 3 audio plays → ...
+  Scene 4 image fades in → Scene 4 audio plays → end
 ```
 
-This is the RunPod/GPU pattern. The frontend subscribes to the `prospects` table. When the mutation in step 5 fires, every connected client instantly sees the video appear. No WebSocket code. No polling from the client. Convex handles it.
+### Why images, not video clips
+
+| | MiniMax image-01 | MiniMax Hailuo video |
+|---|---|---|
+| Speed | **2-5 seconds** | 1-5 minutes |
+| Rate limit | 10 RPM | 5 RPM |
+| Compositing | None needed (frontend displays image) | Requires ffmpeg to overlay audio |
+| Quality | High (good for stylized scenes) | High but abstract/artistic |
+| Demo reliability | Very high (synchronous, fast) | Risky (async, slow, may fail) |
+
+Image generation is fast enough to run LIVE in the demo. Video generation is not.
+
+### Stretch goal: Hailuo video clips
+
+If time permits, after images are generated, kick off Hailuo video generation for each scene in the background. Uses the async polling pattern:
+
+```
+1. Action: Call MiniMax Hailuo with scene image → get task_id
+2. Mutation: Store task_id in generationJobs table
+3. Scheduled function (every 15s): Poll for completion
+4. When done: Download video, store in Convex file storage
+5. Mutation: Update sceneAssets.videoFileId
+6. Frontend: Reactively swaps static image for video clip
+```
+
+The upgrade from image → video happens seamlessly in the UI. But images are the MVP. Video clips are gravy.
 
 ---
 
 ## Video Structure Per Prospect
 
-Each personalized video has 3-4 scenes (~60 seconds total):
+Each personalized "video" has 3 scenes (~45-60 seconds total):
 
-| Scene | Duration | Narration (ElevenLabs) | Visual (MiniMax) |
-|-------|----------|----------------------|------------------|
-| **1. Hook** | 10-15s | "Hi [Name], I noticed [Company] is [specific thing from research]..." | Generated image/video of their industry/product |
-| **2. Pain** | 15-20s | "Most [their role] struggle with [pain point from research]..." | Visual representing the problem |
-| **3. Solution** | 15-20s | "At [Sender Company], we [value prop relevant to their pain]..." | Visual of the solution/product |
-| **4. CTA** | 5-10s | "I'd love to show you how this works for [Company]. [CTA]" | Clean branded closing frame |
+| Scene | Duration | Narration (ElevenLabs) | Visual (MiniMax image-01) |
+|-------|----------|----------------------|--------------------------|
+| **1. Hook** | 10-15s | "Hi [Name], I noticed [Company] is [specific thing from research]..." | Generated image: their industry, a visual related to their product |
+| **2. Pain + Solution** | 20-25s | "Teams like yours often struggle with [pain]. At [Sender], we [solution]..." | Generated image: visual representing the transformation |
+| **3. CTA** | 10-15s | "I'd love to show you how this works for [Company]. [CTA]" | Generated image: clean branded closing with company names |
 
-The script agent writes ALL of this — narration text AND visual prompts — personalized from the research data.
+The script agent writes ALL of this — narration text AND image generation prompts — personalized from the rtrvr.ai research data. 3 scenes keeps generation fast (~30 seconds for all images + voice) while still telling a complete story.
 
 ---
 
@@ -365,18 +396,24 @@ export const prospectPipeline = wf.define({
       prospectId
     });
 
-    // Step 4: Visual generation (async — kicks off jobs, polls)
+    // Step 4: Image generation (fast — seconds per image via image-01)
     await step.runMutation(internal.prospects.updateStatus, {
       prospectId, status: "generating_visuals"
     });
-    await step.runAction(internal.services.generateAllVisuals, {
+    await step.runAction(internal.services.generateAllImages, {
       prospectId
     });
 
-    // Step 5: Mark complete
+    // Mark complete — frontend can now play the narrated slideshow
     await step.runMutation(internal.prospects.updateStatus, {
       prospectId, status: "complete"
     });
+
+    // STRETCH: Kick off Hailuo video generation in background
+    // This upgrades static images to video clips asynchronously
+    // await step.runAction(internal.services.startVideoUpgrades, {
+    //   prospectId
+    // });
   },
 });
 ```
@@ -397,9 +434,9 @@ convex/
 ├── services/
 │   ├── rtrvr.ts                 # rtrvr.ai /scrape integration
 │   ├── elevenlabs.ts            # ElevenLabs TTS — per-scene voice generation
-│   ├── minimax_video.ts         # MiniMax Hailuo — video generation + polling
-│   ├── minimax_image.ts         # MiniMax image-01 — scene stills
-│   └── minimax_music.ts         # MiniMax Music-2.5 (stretch goal)
+│   ├── minimax_image.ts         # MiniMax image-01 — scene visuals (PRIMARY)
+│   ├── minimax_video.ts         # MiniMax Hailuo — video clips (STRETCH GOAL)
+│   └── minimax_music.ts         # MiniMax Music-2.5 (STRETCH GOAL)
 ```
 
 **Key deliverables:**
@@ -480,80 +517,75 @@ export const generateSceneVoice = internalAction({
 });
 ```
 
-**MiniMax video generation (async with polling):**
+**MiniMax image generation (PRIMARY — fast, synchronous):**
 ```typescript
-// convex/services/minimax_video.ts
-export const startVideoGeneration = internalAction({
+// convex/services/minimax_image.ts
+export const generateSceneImage = internalAction({
   args: {
     prospectId: v.id("prospects"),
     sceneNumber: v.number(),
     prompt: v.string(),
   },
   handler: async (ctx, { prospectId, sceneNumber, prompt }) => {
-    // Start async video generation
-    const response = await fetch("https://api.minimax.io/v1/video_generation", {
+    const response = await fetch("https://api.minimax.io/v1/image_generation", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.MINIMAX_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "video-01",
+        model: "image-01",
         prompt: prompt,
       }),
     });
     const data = await response.json();
-    const taskId = data.task_id;
 
-    // Store job reference
-    const jobId = await ctx.runMutation(internal.generationJobs.create, {
+    // Download the image
+    const imageResponse = await fetch(data.data.image_url);
+    const imageBlob = await imageResponse.blob();
+    const storageId = await ctx.storage.store(imageBlob);
+
+    // Save to prospect's scene assets
+    await ctx.runMutation(internal.prospects.saveSceneAsset, {
       prospectId,
-      type: "video",
       sceneNumber,
-      externalJobId: taskId,
-      status: "processing",
-    });
-
-    // Schedule polling (check every 15 seconds)
-    await ctx.scheduler.runAfter(15000, internal.services.pollVideoJob, {
-      jobId, taskId
+      type: "image",
+      fileId: storageId,
     });
   },
 });
 
-export const pollVideoJob = internalAction({
-  args: { jobId: v.id("generationJobs"), taskId: v.string() },
-  handler: async (ctx, { jobId, taskId }) => {
-    const statusResponse = await fetch(
-      `https://api.minimax.io/v1/query/video_generation?task_id=${taskId}`,
-      {
-        headers: { "Authorization": `Bearer ${process.env.MINIMAX_API_KEY}` },
-      }
-    );
-    const statusData = await statusResponse.json();
+// Generate all scene images for a prospect (called by workflow)
+export const generateAllImages = internalAction({
+  args: { prospectId: v.id("prospects") },
+  handler: async (ctx, { prospectId }) => {
+    const prospect = await ctx.runQuery(internal.prospects.get, { prospectId });
+    const scenes = prospect.script!.scenes;
 
-    if (statusData.status === "Success") {
-      // Download the video
-      const videoResponse = await fetch(statusData.file_id);
-      const videoBlob = await videoResponse.blob();
-      const storageId = await ctx.storage.store(videoBlob);
-
-      // Update job and prospect
-      await ctx.runMutation(internal.generationJobs.markComplete, {
-        jobId, resultFileId: storageId
-      });
-    } else if (statusData.status === "Failed") {
-      await ctx.runMutation(internal.generationJobs.markFailed, {
-        jobId, error: statusData.error || "Video generation failed"
-      });
-    } else {
-      // Still processing — poll again in 15 seconds
-      await ctx.scheduler.runAfter(15000, internal.services.pollVideoJob, {
-        jobId, taskId
+    // Generate images for each scene (sequential to respect rate limits)
+    for (const scene of scenes) {
+      await generateSceneImage(ctx, {
+        prospectId,
+        sceneNumber: scene.sceneNumber,
+        prompt: scene.visualPrompt,
       });
     }
   },
 });
+```
+
+**MiniMax Hailuo video (STRETCH GOAL — async with polling):**
+```typescript
+// convex/services/minimax_video.ts
+// Only implement if images are working and time permits.
+// Upgrades static scene images to short video clips.
+// Uses the async polling pattern:
+//   1. Submit image → Hailuo image-to-video
+//   2. Store task_id in generationJobs
+//   3. Scheduled function polls every 15s
+//   4. On completion: download, store in file storage
+//   5. Update sceneAssets.videoFileId
+//   6. Frontend reactively swaps image for video
 ```
 
 **Dependencies on others:**
@@ -744,7 +776,7 @@ src/
 │   ├── PipelineTracker.tsx      # Step-by-step visual (research → script → ...)
 │   ├── ScriptStream.tsx         # Live-streaming script text (delta streaming)
 │   ├── AssetGallery.tsx         # Generated voice/image/video previews
-│   ├── VideoPlayer.tsx          # Play assembled final video
+│   ├── NarratedSlideshow.tsx    # Play scenes as narrated slideshow (images + audio)
 │   ├── CampaignStats.tsx        # Aggregate stats: N complete, N in progress
 │   └── CreateCampaign.tsx       # Form: campaign name, brief, prospects
 ├── hooks/
@@ -785,8 +817,8 @@ function ProspectCard({ prospect }) {
     { key: "researching", label: "Research" },
     { key: "scripting", label: "Script" },
     { key: "generating_voice", label: "Voice" },
-    { key: "generating_visuals", label: "Video" },
-    { key: "complete", label: "Done" },
+    { key: "generating_visuals", label: "Images" },
+    { key: "complete", label: "Ready" },
   ];
 
   return (
@@ -795,7 +827,7 @@ function ProspectCard({ prospect }) {
       <p className="text-sm text-gray-500">{prospect.company}</p>
       <PipelineTracker steps={steps} currentStatus={prospect.status} />
       {prospect.status === "complete" && (
-        <VideoPlayer fileId={prospect.sceneAssets?.[0]?.videoFileId} />
+        <NarratedSlideshow prospect={prospect} />
       )}
     </div>
   );
@@ -828,15 +860,71 @@ function ScriptStream({ threadId }) {
 }
 ```
 
-**File serving — Convex storage URLs:**
+**Narrated slideshow — the frontend IS the video compositor:**
 ```tsx
-function VideoPlayer({ fileId }) {
-  // Convex generates a URL for the stored file
-  const url = useQuery(api.files.getUrl, fileId ? { fileId } : "skip");
-  if (!url) return <div className="animate-pulse bg-gray-200 h-48" />;
-  return <video src={url} controls className="rounded-lg" />;
+// src/components/NarratedSlideshow.tsx
+// This is the "video player" — it plays scene images in sequence
+// synced with per-scene voiceover audio. No ffmpeg. No server rendering.
+function NarratedSlideshow({ prospect }) {
+  const [currentScene, setCurrentScene] = useState(0);
+  const scenes = prospect.script.scenes;
+  const assets = prospect.sceneAssets;
+
+  // Get Convex file URLs for current scene
+  const imageUrl = useQuery(api.files.getUrl,
+    assets?.[currentScene]?.imageFileId
+      ? { fileId: assets[currentScene].imageFileId }
+      : "skip"
+  );
+  const audioUrl = useQuery(api.files.getUrl,
+    assets?.[currentScene]?.voiceFileId
+      ? { fileId: assets[currentScene].voiceFileId }
+      : "skip"
+  );
+
+  // When audio ends, advance to next scene
+  const handleAudioEnd = () => {
+    if (currentScene < scenes.length - 1) {
+      setCurrentScene(prev => prev + 1);
+    }
+  };
+
+  return (
+    <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+      {/* Scene image with fade transition */}
+      <img
+        src={imageUrl}
+        className="w-full h-full object-cover transition-opacity duration-500"
+      />
+
+      {/* Narration text overlay (subtitles) */}
+      <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 p-4">
+        <p className="text-white text-sm">{scenes[currentScene]?.narration}</p>
+      </div>
+
+      {/* Audio player (hidden, auto-plays) */}
+      {audioUrl && (
+        <audio
+          src={audioUrl}
+          autoPlay
+          onEnded={handleAudioEnd}
+        />
+      )}
+
+      {/* Scene indicator dots */}
+      <div className="absolute top-2 right-2 flex gap-1">
+        {scenes.map((_, i) => (
+          <div key={i} className={`w-2 h-2 rounded-full ${
+            i === currentScene ? "bg-white" : "bg-white/40"
+          }`} />
+        ))}
+      </div>
+    </div>
+  );
 }
 ```
+
+This plays like a video to the audience — image fades in, voiceover plays, subtitles show, advances to next scene automatically. No pre-rendering needed.
 
 **Dependencies on others:**
 - Person 1 provides all the queries (`getCampaign`, `getProspects`, `getCampaignProgress`)
@@ -856,13 +944,13 @@ function VideoPlayer({ fileId }) {
 **1. Show the dashboard (30s)**
 "This is ProspectClip. We have a campaign targeting 5 fintech companies. Watch what's happening."
 
-Dashboard shows: 2 prospects complete (green), 1 generating video (progress bar moving), 2 queued.
+Dashboard shows: 2 prospects complete (green), 1 generating images (progress bar moving), 2 queued.
 
 **2. Click into a completed prospect (30s)**
-Show the full pipeline: research data → generated script → voice narration (play it) → video scenes → final assembled video. Play the video. The audience hears an AI voice saying "Hi [Real Name], I noticed [Real Company] just [real thing from their website]..."
+Show the full pipeline: research data → generated script → voice narration → scene images. Hit play on the narrated slideshow. The audience sees an AI-generated image fade in while an AI voice says "Hi [Real Name], I noticed [Real Company] just [real thing from their website]..." — slides advance automatically with each scene.
 
 **3. Click into an in-progress prospect (30s)**
-Show real-time: the script is streaming word-by-word (delta streaming). A voice file just appeared (file storage URL resolves). Video generation is at 60% (polling via scheduled function). The audience watches it progress.
+Show real-time: the script is streaming word-by-word (delta streaming). A voice file just appeared (file storage URL resolves). Scene images are generating — 3 of 5 done, the 4th just popped in. The audience watches assets appear in real-time.
 
 **4. Launch a new prospect LIVE (60s)**
 "Let's add a new prospect right now." Type in a company name + URL. Hit generate. The audience watches:
@@ -872,16 +960,18 @@ Show real-time: the script is streaming word-by-word (delta streaming). A voice 
 - This is the Convex magic moment — zero polling, zero refresh, just reactive data
 
 **5. Show campaign stats (15s)**
-"3 complete, 1 generating, 1 just started. 50 minutes ago this campaign had zero videos. Now we have 3 ready to send."
+"3 complete, 1 generating, 1 just started. 50 minutes ago this campaign had zero outreach assets. Now we have 3 ready to send."
 
 **6. The pitch (30s)**
-"Personalized video gets 3-5x reply rates but nobody can scale it. We just generated 5 custom sales videos from a prospect list. No camera. No recording. No editing. That's ProspectClip."
+"Personalized video outreach gets 3-5x reply rates but nobody can scale it. We just generated 5 custom narrated presentations from a prospect list. No camera. No recording. No editing. That's ProspectClip."
 
-### Demo timing for video generation
-MiniMax Hailuo takes 1-5 minutes per clip. For the demo:
+### Demo timing for asset generation
+- **Images** (MiniMax image-01): Seconds per image — fast enough to generate live during the demo
+- **Voice** (ElevenLabs Flash v2.5): ~75ms latency per scene — nearly instant
+- **Script** (MiniMax M2.5): Streams in real-time via delta streaming
 - Pre-generated prospects handle the "show finished product" moment
-- The live-launched prospect shows the real-time pipeline (research + script are fast, video is in progress when demo ends)
-- The video generation being slow is GOOD — it shows the real-time tracking working: "See how the dashboard updates as each scene completes? That's Convex reactive queries. Zero polling."
+- The live-launched prospect shows the real-time pipeline — research + script + images all complete fast enough to see progress during the demo
+- **Stretch goal**: If Hailuo video clips are ready, swap one prospect's slideshow images for actual video clips to show the upgrade path
 
 ---
 
@@ -903,4 +993,7 @@ Convex doesn't need a separate key — it's the hosting platform.
 "Tavus, HeyGen, and Synthesia all require you to RECORD a template video. You sit in front of a camera, read a script, and the AI personalizes the name insertion. ProspectClip generates everything from scratch — script, voice, visuals — personalized from actual research about the prospect's company. Zero recording. That's a fundamentally different product."
 
 When a judge asks "how is this different from HeyGen?":
-**"HeyGen is a video editing tool with AI features. We're an AI research-to-video pipeline. The input is a company URL, not a recording. The output is a video that references things only someone who researched the prospect would know."**
+**"HeyGen is a video editing tool with AI features. We're an AI research-to-visual-outreach pipeline. The input is a company URL, not a recording. The output is a narrated presentation that references things only someone who researched the prospect would know — and it scales to hundreds of prospects automatically."**
+
+When a judge asks "is this really video?":
+**"The narrated slideshow is the MVP. Each scene has a custom AI-generated image, professional voiceover, and subtitles — it plays like a video. And our architecture supports swapping in MiniMax Hailuo video clips per scene as a drop-in upgrade. The pipeline is the product, not the rendering format."**
