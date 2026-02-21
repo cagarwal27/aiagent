@@ -12,7 +12,7 @@ async function seedProspect(t: ReturnType<typeof convexTest>) {
     });
     const prospectId = await ctx.db.insert("prospects", {
       campaignId, name: "John", company: "Stripe",
-      url: "https://stripe.com", status: "generating_images",
+      url: "https://stripe.com", status: "generating_visuals",
     });
     return { campaignId, prospectId };
   });

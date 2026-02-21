@@ -36,6 +36,32 @@ export const getByCampaignAndStatus = query({
   },
 });
 
+export const getWithAssetUrls = query({
+  args: { prospectId: v.id("prospects") },
+  handler: async (ctx, { prospectId }) => {
+    const prospect = await ctx.db.get(prospectId);
+    if (!prospect) return null;
+
+    const resolvedAssets = await Promise.all(
+      (prospect.sceneAssets ?? []).map(async (asset) => {
+        const [imageUrl, voiceUrl, videoUrl] = await Promise.all([
+          asset.imageFileId ? ctx.storage.getUrl(asset.imageFileId) : null,
+          asset.voiceFileId ? ctx.storage.getUrl(asset.voiceFileId) : null,
+          asset.videoFileId ? ctx.storage.getUrl(asset.videoFileId) : null,
+        ]);
+        return {
+          sceneNumber: asset.sceneNumber,
+          imageUrl: imageUrl ?? undefined,
+          voiceUrl: voiceUrl ?? undefined,
+          videoUrl: videoUrl ?? undefined,
+        };
+      })
+    );
+
+    return { ...prospect, resolvedAssets };
+  },
+});
+
 // === INTERNAL QUERIES (Person 3 agent + workflow) ===
 
 /** Get a prospect by ID. Used by writeScript to pre-fetch context. */

@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { STAGES, createImageSvgDataUrl } from "../lib/mockData";
 import ConvexBadge from "../components/ConvexBadge";
 
-function stageLabel(index, stages) {
-  return stages[index].replace("_", " ").replace(/\b\w/g, (m) => m.toUpperCase());
+function stageLabel(status) {
+  return status.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 function assetDuration(asset) {
@@ -11,27 +15,100 @@ function assetDuration(asset) {
   return "Scene";
 }
 
-function GalleryPage({
-  campaigns,
-  activeCampaign,
-  selectedProspect,
-  assets,
-  selectedAsset,
-  onActiveCampaignChange,
-  onSelectedProspectChange,
-  onSelectedAssetChange,
-  stages,
-}) {
+function GalleryPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const campaigns = useQuery(api.campaigns.list);
+
+  const selectedCampaignId = searchParams.get("campaign") ?? campaigns?.[0]?._id;
+
+  const prospects = useQuery(
+    api.prospects.getByCampaign,
+    selectedCampaignId ? { campaignId: selectedCampaignId } : "skip"
+  );
+
+  const [selectedProspectId, setSelectedProspectId] = useState(null);
+  const activeProspectId = selectedProspectId ?? prospects?.[0]?._id ?? null;
+
+  const prospectWithAssets = useQuery(
+    api.prospects.getWithAssetUrls,
+    activeProspectId ? { prospectId: activeProspectId } : "skip"
+  );
+
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
+
+  const assets = useMemo(() => {
+    if (!prospectWithAssets) return [];
+    const resolved = prospectWithAssets.resolvedAssets ?? [];
+    const flat = [];
+    for (const a of resolved) {
+      if (a.imageUrl) {
+        flat.push({
+          id: `img-${a.sceneNumber}`,
+          type: "image",
+          label: `Scene ${a.sceneNumber} Image`,
+          url: a.imageUrl,
+        });
+      }
+      if (a.voiceUrl) {
+        flat.push({
+          id: `voice-${a.sceneNumber}`,
+          type: "audio",
+          label: `Scene ${a.sceneNumber} Voice`,
+          url: a.voiceUrl,
+        });
+      }
+      if (a.videoUrl) {
+        flat.push({
+          id: `video-${a.sceneNumber}`,
+          type: "video",
+          label: `Scene ${a.sceneNumber} Video`,
+          url: a.videoUrl,
+        });
+      }
+    }
+
+    // If no resolved assets but script exists, show placeholder images
+    if (flat.length === 0 && prospectWithAssets.script?.scenes) {
+      for (const scene of prospectWithAssets.script.scenes) {
+        flat.push({
+          id: `placeholder-${scene.sceneNumber}`,
+          type: "image",
+          label: `Scene ${scene.sceneNumber} (Pending)`,
+          url: createImageSvgDataUrl(
+            `Scene ${scene.sceneNumber}`,
+            "#1a365d",
+            "#2b6cb0"
+          ),
+        });
+      }
+    }
+
+    return flat;
+  }, [prospectWithAssets]);
 
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
-      const matchesType = typeFilter === "all" ? true : asset.type === typeFilter;
+      const matchesType = typeFilter === "all" || asset.type === typeFilter;
       const matchesSearch = asset.label.toLowerCase().includes(search.toLowerCase());
       return matchesType && matchesSearch;
     });
   }, [assets, search, typeFilter]);
+
+  const selectedAsset = useMemo(
+    () => assets.find((a) => a.id === selectedAssetId) ?? assets[0] ?? null,
+    [assets, selectedAssetId]
+  );
+
+  if (campaigns === undefined) {
+    return (
+      <section className="panel page-panel gallery-page">
+        <h2>Gallery</h2>
+        <p className="empty">Loading...</p>
+      </section>
+    );
+  }
 
   return (
     <section className="panel page-panel gallery-page">
@@ -46,15 +123,15 @@ function GalleryPage({
           <label htmlFor="gallery-campaign">Campaign</label>
           <select
             id="gallery-campaign"
-            value={activeCampaign?.id ?? ""}
+            value={selectedCampaignId ?? ""}
             onChange={(e) => {
-              onActiveCampaignChange(e.target.value);
-              const nextCampaign = campaigns.find((c) => c.id === e.target.value);
-              onSelectedProspectChange(nextCampaign?.prospects[0]?.id ?? null);
+              setSearchParams({ campaign: e.target.value });
+              setSelectedProspectId(null);
+              setSelectedAssetId(null);
             }}
           >
             {campaigns.map((campaign) => (
-              <option key={campaign.id} value={campaign.id}>
+              <option key={campaign._id} value={campaign._id}>
                 {campaign.name}
               </option>
             ))}
@@ -65,11 +142,14 @@ function GalleryPage({
           <label htmlFor="gallery-prospect">Prospect</label>
           <select
             id="gallery-prospect"
-            value={selectedProspect?.id ?? ""}
-            onChange={(e) => onSelectedProspectChange(e.target.value)}
+            value={activeProspectId ?? ""}
+            onChange={(e) => {
+              setSelectedProspectId(e.target.value);
+              setSelectedAssetId(null);
+            }}
           >
-            {(activeCampaign?.prospects ?? []).map((prospect) => (
-              <option key={prospect.id} value={prospect.id}>
+            {(prospects ?? []).map((prospect) => (
+              <option key={prospect._id} value={prospect._id}>
                 {prospect.name} ({prospect.company})
               </option>
             ))}
@@ -100,7 +180,7 @@ function GalleryPage({
         </div>
       </div>
 
-      {selectedProspect ? (
+      {prospectWithAssets ? (
         <div className="yt-watch-layout">
           <div className="yt-main">
             <div className="yt-player">
@@ -108,7 +188,7 @@ function GalleryPage({
               {selectedAsset?.type === "audio" && (
                 <div className="yt-audio-wrap">
                   <div className="yt-audio-art">
-                    <p>{selectedProspect.company}</p>
+                    <p>{prospectWithAssets.company}</p>
                     <strong>{selectedAsset.label}</strong>
                   </div>
                   <audio controls src={selectedAsset.url} />
@@ -120,16 +200,21 @@ function GalleryPage({
             <div className="yt-meta">
               <h3>{selectedAsset?.label ?? "No asset selected"}</h3>
               <p>
-                {selectedProspect.name} • {selectedProspect.company} • {stageLabel(selectedProspect.stage, stages)}
+                {prospectWithAssets.name} • {prospectWithAssets.company} • {stageLabel(prospectWithAssets.status)}
               </p>
+              {prospectWithAssets.script?.fullNarration && (
+                <details style={{ marginTop: "0.75rem" }}>
+                  <summary>Full Script</summary>
+                  <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+                    {prospectWithAssets.script.fullNarration}
+                  </pre>
+                </details>
+              )}
               {selectedAsset && (
                 <div className="row">
-                  <button type="button" onClick={() => onSelectedAssetChange(selectedAsset.id)}>
-                    Play
-                  </button>
                   <a
                     href={selectedAsset.url}
-                    download={`${selectedProspect.company}-${selectedAsset.label}`}
+                    download={`${prospectWithAssets.company}-${selectedAsset.label}`}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -146,7 +231,7 @@ function GalleryPage({
                 key={asset.id}
                 type="button"
                 className={`yt-list-item ${selectedAsset?.id === asset.id ? "active" : ""}`}
-                onClick={() => onSelectedAssetChange(asset.id)}
+                onClick={() => setSelectedAssetId(asset.id)}
               >
                 <div className="yt-thumb">
                   {asset.type === "image" ? <img src={asset.url} alt={asset.label} /> : <span>{asset.type.toUpperCase()}</span>}
@@ -155,7 +240,7 @@ function GalleryPage({
                 <div className="yt-item-meta">
                   <p>{asset.label}</p>
                   <small>
-                    {selectedProspect.company} • {asset.type}
+                    {prospectWithAssets.company} • {asset.type}
                   </small>
                 </div>
               </button>
@@ -163,6 +248,8 @@ function GalleryPage({
             {filteredAssets.length === 0 && <p className="empty">No assets match this filter.</p>}
           </aside>
         </div>
+      ) : activeProspectId ? (
+        <p className="empty">Loading prospect assets...</p>
       ) : (
         <p className="empty">Select a campaign and prospect to view assets.</p>
       )}

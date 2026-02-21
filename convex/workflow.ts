@@ -39,7 +39,7 @@ export const prospectPipeline = workflow.define({
     // Step 4: Generate images via MiniMax image-01
     await step.runMutation(internal.prospects.updateStatus, {
       prospectId,
-      status: "generating_images",
+      status: "generating_visuals",
     });
     await step.runAction(internal.services.generateAllImages, {
       prospectId,

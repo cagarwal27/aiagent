@@ -1,51 +1,52 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { STAGES } from "../lib/mockData";
 import ConvexBadge from "../components/ConvexBadge";
 
-const STAGE_DURATION_MS = 1800;
-
-function stageLabel(index, stages) {
-  return stages[index].replace("_", " ").replace(/\b\w/g, (m) => m.toUpperCase());
+function stageLabel(status) {
+  return status.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function stagePct(index, stages, stageStartedAt, now) {
-  const stepSize = 100 / (stages.length - 1);
-  const base = index * stepSize;
-  if (index >= stages.length - 1) return 100;
-  const elapsed = Math.max(0, now - (stageStartedAt ?? now));
-  const inStage = Math.min(elapsed / STAGE_DURATION_MS, 1) * stepSize;
-  return Math.min(base + inStage, 99.9);
+function stagePct(status) {
+  const index = STAGES.indexOf(status);
+  if (index < 0) return 0;
+  return Math.round((index / (STAGES.length - 1)) * 100);
 }
 
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+function PipelineDashboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const campaigns = useQuery(api.campaigns.list);
+  const selectedCampaignId = searchParams.get("campaign") ?? campaigns?.[0]?._id;
 
-function PipelineDashboardPage({
-  campaigns,
-  activeCampaign,
-  selectedProspectId,
-  onActiveCampaignChange,
-  onSelectedProspectChange,
-  stages,
-}) {
-  const [now, setNow] = useState(Date.now());
+  const progress = useQuery(
+    api.campaigns.getProgress,
+    selectedCampaignId ? { campaignId: selectedCampaignId } : "skip"
+  );
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 150);
-    return () => clearInterval(timer);
-  }, []);
-
-  const total = activeCampaign?.prospects.length ?? 0;
-  const complete = activeCampaign?.prospects.filter((p) => p.stage === stages.length - 1).length ?? 0;
-  const inFlight = total - complete;
   const overallProgress = useMemo(() => {
-    if (!activeCampaign || activeCampaign.prospects.length === 0) return 0;
-    const sum = activeCampaign.prospects.reduce(
-      (acc, prospect) => acc + stagePct(prospect.stage, stages, prospect.stageStartedAt, now),
+    if (!progress || progress.prospects.length === 0) return 0;
+    const sum = progress.prospects.reduce(
+      (acc, p) => acc + stagePct(p.status),
       0
     );
-    return Math.round(sum / activeCampaign.prospects.length);
-  }, [activeCampaign, now, stages]);
+    return Math.round(sum / progress.prospects.length);
+  }, [progress]);
+
+  if (campaigns === undefined) {
+    return (
+      <section className="panel page-panel">
+        <h2>Pipeline Dashboard</h2>
+        <p className="empty">Loading...</p>
+      </section>
+    );
+  }
+
+  const total = progress?.total ?? 0;
+  const complete = progress?.completed ?? 0;
+  const failed = progress?.failed ?? 0;
+  const inFlight = total - complete - failed;
 
   return (
     <section className="panel page-panel">
@@ -59,22 +60,18 @@ function PipelineDashboardPage({
         <label htmlFor="pipeline-campaign">Campaign</label>
         <select
           id="pipeline-campaign"
-          value={activeCampaign?.id ?? ""}
-          onChange={(e) => {
-            onActiveCampaignChange(e.target.value);
-            const next = campaigns.find((c) => c.id === e.target.value);
-            onSelectedProspectChange(next?.prospects[0]?.id ?? null);
-          }}
+          value={selectedCampaignId ?? ""}
+          onChange={(e) => setSearchParams({ campaign: e.target.value })}
         >
           {campaigns.map((campaign) => (
-            <option key={campaign.id} value={campaign.id}>
+            <option key={campaign._id} value={campaign._id}>
               {campaign.name}
             </option>
           ))}
         </select>
       </div>
 
-      {activeCampaign ? (
+      {progress ? (
         <>
           <div className="metrics">
             <div>
@@ -89,6 +86,12 @@ function PipelineDashboardPage({
               <span>Complete</span>
               <strong>{complete}</strong>
             </div>
+            {failed > 0 && (
+              <div>
+                <span>Failed</span>
+                <strong>{failed}</strong>
+              </div>
+            )}
           </div>
           <div className="campaign-progress">
             <div className="campaign-progress-head">
@@ -100,30 +103,30 @@ function PipelineDashboardPage({
             </div>
           </div>
           <div className="prospect-list">
-            {activeCampaign.prospects.map((prospect) => (
-              <div
-                key={prospect.id}
-                className={`prospect-item ${selectedProspectId === prospect.id ? "selected" : ""}`}
-                onClick={() => onSelectedProspectChange(prospect.id)}
-              >
+            {progress.prospects.map((prospect) => (
+              <div key={prospect._id} className="prospect-item">
                 <div className="prospect-head">
                   <strong>{prospect.name}</strong>
-                  <small>{stageLabel(prospect.stage, stages)}</small>
+                  <small>{stageLabel(prospect.status)}</small>
                 </div>
                 <p>{prospect.company}</p>
+                {prospect.error && (
+                  <p style={{ color: "#e53e3e", fontSize: "0.85rem" }}>{prospect.error}</p>
+                )}
                 <div className="rail">
                   <div
                     className="fill"
-                    style={{ width: `${stagePct(prospect.stage, stages, prospect.stageStartedAt, now)}%` }}
+                    style={{ width: `${stagePct(prospect.status)}%` }}
                   />
                 </div>
-                <time>Updated {formatTime(prospect.updatedAt)}</time>
               </div>
             ))}
           </div>
         </>
+      ) : selectedCampaignId ? (
+        <p className="empty">Loading pipeline...</p>
       ) : (
-        <p className="empty">No campaigns yet.</p>
+        <p className="empty">No campaigns yet. Create one first.</p>
       )}
     </section>
   );
