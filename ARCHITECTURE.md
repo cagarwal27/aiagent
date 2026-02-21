@@ -6,6 +6,51 @@ An AI agent that monitors, evaluates, and governs other tool-using AI agents in 
 
 ---
 
+## The Idea in Plain English
+
+### The Problem
+
+Companies are starting to deploy AI agents that actually DO things — send emails, process payments, issue refunds, look up customer data. Not chatbots. Agents with access to real tools and real money.
+
+The issue: **nobody trusts them enough to let them run unsupervised.** And for good reason:
+
+- A sales agent researches a prospect on the web, hits a poisoned webpage, and suddenly starts BCCing every email to an attacker's address
+- A finance agent processes invoices and approves an $847,000 payment to a vendor that normally bills $8,400 — because nobody told it to question the amount
+- A support agent takes a customer's word that they were "double charged" and refunds $12,000 that was never double-charged
+
+These aren't hypothetical. These are the exact failure modes that keep companies from deploying agents in production. The agent does what it's told. It doesn't ask "should I really be doing this?"
+
+### The Solution
+
+**Build a second AI agent whose only job is to watch the first one.**
+
+Think of it like a security guard sitting next to an employee. The employee (Worker Agent) does the actual work — research, emails, payments, refunds. The security guard (Guardian Agent) watches every single action the employee takes and asks:
+
+- "Is this normal?"
+- "Does this violate any rules?"
+- "Has someone tampered with the information this employee is acting on?"
+- "Is this amount way outside the usual range?"
+
+When the Guardian spots something wrong, it does one of four things:
+1. **Blocks it** — "No, you're not sending that email."
+2. **Fixes it** — strips out the malicious part, lets the clean version through
+3. **Asks a human** — "This is ambiguous. Here's what I see, here are your options."
+4. **Logs everything** — produces an audit trail of every decision, every risk, every action taken
+
+### The Wedge
+
+You don't sell this to everyone at once. You start where **mistakes are expensive and agents are already being deployed**:
+
+**Sales/RevOps teams** using AI agents to send outreach at scale. One bad email goes to 10,000 people? That's a brand-destroying event. The Guardian catches the poisoned web content before it corrupts the outreach.
+
+That's the entry point. Once you're in, you expand to finance (money moving incorrectly) and support (fraudulent refunds). Same Guardian, different policies.
+
+### Why It's a Good Hackathon Project
+
+Most teams will build an agent that does a task. You build the agent that **makes every other agent safe to deploy.** It's meta — and it has built-in drama. The demo isn't "watch our agent book a flight." The demo is "watch our agent catch an attack in real-time and stop it, then explain exactly what would have gone wrong." That has tension. Judges remember tension.
+
+---
+
 ## Sponsor Integration Map
 
 | Sponsor | Role in System | Required? | Credit | Why It Fits |
