@@ -9,7 +9,7 @@ function HomePage() {
           Zero recording.
         </h2>
         <p className="hero-sub">
-          ProspectClip researches each prospect, writes a custom script, generates voice-over narration,
+          Vimero researches each prospect, writes a custom script, generates voice-over narration,
           and composes a personalized sales video — all in under 90 seconds.
         </p>
         <div className="hero-ctas">

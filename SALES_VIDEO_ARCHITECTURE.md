@@ -1,8 +1,8 @@
-# ProspectClip — AI-Generated Personalized Sales Video at Scale
+# Vimero — AI-Generated Personalized Sales Video at Scale
 
 ## One-Line Pitch
 
-"Personalized video outreach gets 3-5x reply rates. But SDRs can't record 50 custom videos a day. ProspectClip researches your prospects, writes scripts, and generates personalized videos — 10 at a time, zero recording."
+"Personalized video outreach gets 3-5x reply rates. But SDRs can't record 50 custom videos a day. Vimero researches your prospects, writes scripts, and generates personalized videos — 10 at a time, zero recording."
 
 ---
 
@@ -23,7 +23,7 @@ So sales teams either:
 
 ### The Solution
 
-Upload a prospect list. ProspectClip does the rest:
+Upload a prospect list. Vimero does the rest:
 
 1. **Researches** each prospect's company (what they do, recent news, pain points)
 2. **Writes** a personalized script that references their specific situation
@@ -942,7 +942,7 @@ This plays like a video to the audience — image fades in, voiceover plays, sub
 ### Live demo flow
 
 **1. Show the dashboard (30s)**
-"This is ProspectClip. We have a campaign targeting 5 fintech companies. Watch what's happening."
+"This is Vimero. We have a campaign targeting 5 fintech companies. Watch what's happening."
 
 Dashboard shows: 2 prospects complete (green), 1 generating images (progress bar moving), 2 queued.
 
@@ -963,7 +963,7 @@ Show real-time: the script is streaming word-by-word (delta streaming). A voice 
 "3 complete, 1 generating, 1 just started. 50 minutes ago this campaign had zero outreach assets. Now we have 3 ready to send."
 
 **6. The pitch (30s)**
-"Personalized video outreach gets 3-5x reply rates but nobody can scale it. We just generated 5 custom narrated presentations from a prospect list. No camera. No recording. No editing. That's ProspectClip."
+"Personalized video outreach gets 3-5x reply rates but nobody can scale it. We just generated 5 custom narrated presentations from a prospect list. No camera. No recording. No editing. That's Vimero."
 
 ### Demo timing for asset generation
 - **Images** (MiniMax image-01): Seconds per image — fast enough to generate live during the demo
@@ -990,7 +990,7 @@ Convex doesn't need a separate key — it's the hosting platform.
 
 ## What Makes This Defensible as a Pitch
 
-"Tavus, HeyGen, and Synthesia all require you to RECORD a template video. You sit in front of a camera, read a script, and the AI personalizes the name insertion. ProspectClip generates everything from scratch — script, voice, visuals — personalized from actual research about the prospect's company. Zero recording. That's a fundamentally different product."
+"Tavus, HeyGen, and Synthesia all require you to RECORD a template video. You sit in front of a camera, read a script, and the AI personalizes the name insertion. Vimero generates everything from scratch — script, voice, visuals — personalized from actual research about the prospect's company. Zero recording. That's a fundamentally different product."
 
 When a judge asks "how is this different from HeyGen?":
 **"HeyGen is a video editing tool with AI features. We're an AI research-to-visual-outreach pipeline. The input is a company URL, not a recording. The output is a narrated presentation that references things only someone who researched the prospect would know — and it scales to hundreds of prospects automatically."**

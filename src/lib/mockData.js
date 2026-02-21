@@ -107,7 +107,7 @@ export const SAMPLE_SCRIPT = `Hey {{firstName}}, I noticed {{company}} just clos
 
 Most sales leaders at your stage tell us the same thing: their reps spend 40% of their time on research and personalization that still feels generic.
 
-ProspectClip changes that. We use AI to research each prospect, write a custom script, generate a voice-over, and compose a personalized video — all in under 90 seconds.
+Vimero changes that. We use AI to research each prospect, write a custom script, generate a voice-over, and compose a personalized video — all in under 90 seconds.
 
 Imagine your SDRs sending 200 personalized video messages a day without recording a single one. That's 3-5x more pipeline at half the cost.
 
@@ -120,8 +120,8 @@ export const SAMPLE_SCENES = [
     duration: 4000,
   },
   {
-    imageUrl: createImageSvgDataUrl("Solution — ProspectClip", "#22543d", "#38a169"),
-    narration: "ProspectClip uses AI to research, script, voice, and compose a personalized video in under 90 seconds.",
+    imageUrl: createImageSvgDataUrl("Solution — Vimero", "#22543d", "#38a169"),
+    narration: "Vimero uses AI to research, script, voice, and compose a personalized video in under 90 seconds.",
     duration: 5000,
   },
   {
