@@ -92,7 +92,8 @@ const saveScript = createTool({
 
 export const scriptAgent = new Agent(components.agent, {
   name: "Script Writer",
-  chat: minimax.chat("MiniMax-M2.1"),
+  languageModel: minimax.chat("MiniMax-M2.1"),
+  maxSteps: 2,
   instructions: `You are a world-class sales video scriptwriter for personalized B2B outreach.
 
 Your job: write a personalized 45-60 second video script for a specific prospect, then save it using the saveScript tool.

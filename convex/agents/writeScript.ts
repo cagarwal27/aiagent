@@ -98,11 +98,6 @@ export const writeScript = internalAction({
       { threadId },
       {
         prompt,
-        // maxSteps: 2 allows the agent to (1) write text + call saveScript,
-        // then (2) see the tool result. Default is 1 which still EXECUTES
-        // the tool but doesn't give the LLM a follow-up turn. Setting 2
-        // is safer — if the LLM needs a second attempt, it gets one.
-        maxSteps: 2,
       },
       {
         saveStreamDeltas: {
