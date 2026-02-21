@@ -997,63 +997,305 @@ img {
   font-size: 15px;
 }
 
-/* ===== Slide: The Problem ===== */
-.demo-stat {
-  font-size: clamp(19px, 2vw, 24px);
-  color: var(--text-secondary);
-  margin: 0 0 24px;
+/* ===== Slide: The Problem (animated funnel) ===== */
+.demo-slide--problem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.demo-stat strong {
-  color: var(--danger);
-  font-size: clamp(24px, 2.5vw, 32px);
+.problem-funnel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  max-width: 700px;
+  width: 100%;
+  margin: 8px auto 0;
 }
 
-.demo-compare {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.problem-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.problem-connector {
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(to bottom, rgba(248, 113, 113, 0.5), rgba(248, 113, 113, 0.15));
+  border-radius: 1px;
+}
+
+.problem-stat-inner {
+  display: flex;
+  align-items: center;
   gap: 24px;
+  width: 100%;
+  padding: 20px 28px;
+  background: rgba(248, 113, 113, 0.06);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.demo-compare-card {
-  border-radius: 14px;
-  padding: 24px;
-  text-align: left;
+.problem-stat-inner:hover {
+  border-color: rgba(248, 113, 113, 0.4);
+  box-shadow: 0 0 20px rgba(248, 113, 113, 0.1);
 }
 
-.demo-compare-card h4 {
-  margin: 0 0 10px;
+.problem-number {
+  font-size: clamp(40px, 5vw, 56px);
+  font-weight: 800;
+  color: var(--danger);
+  min-width: 120px;
+  text-align: center;
+  line-height: 1;
 }
 
-.demo-compare-card ul {
-  margin: 0;
-  padding-left: 18px;
+.problem-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.demo-compare-card li {
-  margin-bottom: 8px;
-  font-size: 16px;
+.problem-label {
+  font-size: clamp(16px, 1.8vw, 20px);
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.problem-source {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.problem-tagline {
+  font-size: clamp(16px, 1.6vw, 19px);
+  color: var(--text-secondary);
+  margin: 28px 0 0;
+  text-align: center;
+  white-space: nowrap;
   line-height: 1.5;
 }
 
-.demo-compare--old {
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.25);
-  color: var(--text-primary);
+/* ===== Slide: The Vimero Effect (Before/After) ===== */
+.demo-slide--results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.demo-compare--old h4 {
+.results-tagline {
+  font-size: clamp(18px, 2vw, 24px);
+  color: var(--accent);
+  font-weight: 700;
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.results-header {
+  display: grid;
+  grid-template-columns: 1fr 100px 1fr;
+  gap: 16px;
+  max-width: 800px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.results-header-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.results-header--before {
   color: var(--danger);
 }
 
-.demo-compare--new {
-  background: var(--accent-subtle);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  color: var(--text-primary);
+.results-header--after {
+  color: var(--success);
 }
 
-.demo-compare--new h4 {
+.results-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 800px;
+  width: 100%;
+}
+
+.results-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.results-before,
+.results-after {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 16px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.results-before {
+  background: rgba(248, 113, 113, 0.06);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.results-after {
+  background: rgba(74, 222, 128, 0.06);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.results-number {
+  font-size: clamp(28px, 3.5vw, 40px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.results-number--danger {
+  color: var(--danger);
+}
+
+.results-number--success {
+  color: var(--success);
+}
+
+.results-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.results-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.results-badge {
+  background: var(--accent-subtle);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--accent);
+  white-space: nowrap;
+}
+
+.results-arrow-svg {
+  color: var(--accent);
+}
+
+.results-source {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 20px 0 0;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ===== Slide: Market Opportunity ===== */
+.demo-slide--market {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.market-tam {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 32px;
+  padding: 36px 48px;
+  background: var(--accent-subtle);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 24px;
+  box-shadow: 0 0 40px rgba(245, 158, 11, 0.08);
+}
+
+.market-number {
+  font-size: clamp(52px, 7vw, 80px);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  background: var(--gradient-fill);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.market-label {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.market-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 600px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.market-detail-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.market-detail-number {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.market-detail-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.market-positioning {
+  font-size: 16px;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ===== Title Card Tagline ===== */
+.demo-title-tagline {
+  font-size: clamp(18px, 2.5vw, 28px) !important;
+  font-weight: 400 !important;
+  color: var(--text-primary) !important;
+  margin: 0 0 32px !important;
 }
 
 /* ===== Slide: Upload & Go — typing animation ===== */
@@ -1578,8 +1820,36 @@ img {
   .yt-watch-layout,
   .home-grid,
   .steps-row,
-  .demo-compare {
+  .market-details {
     grid-template-columns: 1fr;
+  }
+
+  .results-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .results-header {
+    display: none;
+  }
+
+  .results-arrow {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .results-arrow-svg {
+    transform: rotate(90deg);
+  }
+
+  .problem-stat-inner {
+    padding: 14px 18px;
+    gap: 14px;
+  }
+
+  .problem-number {
+    font-size: 36px;
+    min-width: 80px;
   }
 
   .yt-list-item {

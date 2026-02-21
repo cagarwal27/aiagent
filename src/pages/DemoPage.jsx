@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import NarratedSlideshow from "../components/NarratedSlideshow";
 import { STAGES, SAMPLE_SCENES } from "../lib/mockData";
 
-const SLIDE_COUNT = 6;
+const SLIDE_COUNT = 8;
 
 /* ===== Convex features per slide (null = no strip) ===== */
 const SLIDE_CONVEX_FEATURES = [
@@ -13,39 +13,80 @@ const SLIDE_CONVEX_FEATURES = [
   "Durable Workflows · Real-time Queries",       // Pipeline
   "Agent · Delta Streaming · Vector Search",     // Script
   "File Storage",                                // Assets
+  null,                                          // Results — no tech
+  null,                                          // Market — no tech
   null,                                          // Stack — features are in the flowchart
 ];
 
-/* ---------- Slide 0: The Problem ---------- */
+/* ===== Animated Number Counter ===== */
+function AnimatedNumber({ value, prefix = "", suffix = "", delay = 0 }) {
+  const [display, setDisplay] = useState(0);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    const timeout = setTimeout(() => {
+      started.current = true;
+      const duration = 1400;
+      const startTime = performance.now();
+      const tick = (now) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setDisplay(Math.round(value * eased));
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [value, delay]);
+
+  return <>{prefix}{display}{suffix}</>;
+}
+
+/* ---------- Slide 0: The Problem (animated funnel) ---------- */
 function SlideTheProblem() {
+  const stats = [
+    { value: 70, prefix: "", suffix: "%", label: "of rep time wasted on non-selling tasks", source: "Salesforce, 2026", delay: 400 },
+    { value: 1, prefix: "<", suffix: "%", label: "average cold email reply rate", source: "Breakcold, 2026", delay: 800 },
+    { value: 50, prefix: "$", suffix: "K", label: "pipeline generated per rep, per quarter", source: "Industry Average", delay: 1200 },
+  ];
+
   return (
     <div className="demo-slide demo-slide--problem">
       <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        The Problem
+        The Broken Sales Funnel
       </motion.h2>
-      <motion.p className="demo-stat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-        Sales reps spend <strong>3-5x</strong> more time on personalization than selling.
+      <div className="problem-funnel">
+        {stats.map((stat, i) => (
+          <motion.div
+            key={i}
+            className="problem-stat-card"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 + i * 0.35, type: "spring", stiffness: 80 }}
+          >
+            {i > 0 && <div className="problem-connector" />}
+            <div className="problem-stat-inner">
+              <span className="problem-number">
+                <AnimatedNumber value={stat.value} prefix={stat.prefix} suffix={stat.suffix} delay={stat.delay} />
+              </span>
+              <div className="problem-text">
+                <span className="problem-label">{stat.label}</span>
+                <span className="problem-source">{stat.source}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      <motion.p
+        className="problem-tagline"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.0 }}
+      >
+        Your reps are drowning in research. Their emails are being ignored.
       </motion.p>
-      <motion.div className="demo-compare" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-        <div className="demo-compare-card demo-compare--old">
-          <h4>Current Reality</h4>
-          <ul>
-            <li>Manual research per prospect</li>
-            <li>Generic email templates</li>
-            <li>2% reply rates</li>
-            <li>Hours per personalized video</li>
-          </ul>
-        </div>
-        <div className="demo-compare-card demo-compare--new">
-          <h4>Vimero</h4>
-          <ul>
-            <li>AI-powered prospect research</li>
-            <li>Custom scripts per person</li>
-            <li>12%+ reply rates</li>
-            <li>90 seconds per video</li>
-          </ul>
-        </div>
-      </motion.div>
     </div>
   );
 }
@@ -235,7 +276,129 @@ function SlideGeneratedAssets() {
   );
 }
 
-/* ---------- Slide 5: The Stack (vertical flowchart) ---------- */
+/* ---------- Slide 5: The Vimero Effect (Before vs After) ---------- */
+function SlideResults() {
+  const rows = [
+    { before: "70%", beforeLabel: "time on non-selling tasks", after: "Instant", afterLabel: "AI-powered research", badge: "Time Saved" },
+    { before: "<1%", beforeLabel: "cold email reply rate", after: "30%", afterLabel: "video reply rate", badge: "30x" },
+    { before: "$50K", beforeLabel: "pipeline per quarter", after: "$250K", afterLabel: "pipeline per quarter", badge: "5x Revenue" },
+  ];
+
+  return (
+    <div className="demo-slide demo-slide--results">
+      <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        The Vimero Effect
+      </motion.h2>
+      <motion.p
+        className="results-tagline"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25 }}
+      >
+        Generate 5x more revenue
+      </motion.p>
+
+      {/* Column headers */}
+      <motion.div
+        className="results-header"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <span className="results-header-label results-header--before">Without Vimero</span>
+        <span />
+        <span className="results-header-label results-header--after">With Vimero</span>
+      </motion.div>
+
+      <div className="results-grid">
+        {rows.map((r, i) => (
+          <motion.div
+            key={i}
+            className="results-row"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 + i * 0.3 }}
+          >
+            <div className="results-before">
+              <span className="results-number results-number--danger">{r.before}</span>
+              <span className="results-label">{r.beforeLabel}</span>
+            </div>
+            <div className="results-arrow">
+              <div className="results-badge">{r.badge}</div>
+              <svg width="40" height="16" viewBox="0 0 40 16" className="results-arrow-svg">
+                <path d="M0 8h34m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="results-after">
+              <span className="results-number results-number--success">{r.after}</span>
+              <span className="results-label">{r.afterLabel}</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <motion.p
+        className="results-source"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+      >
+        Sources: Sendspark 2026, Salesforce State of Sales 2026, Warmly Case Study
+      </motion.p>
+    </div>
+  );
+}
+
+/* ---------- Slide 6: Market Opportunity ---------- */
+function SlideMarket() {
+  return (
+    <div className="demo-slide demo-slide--market">
+      <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        Market Opportunity
+      </motion.h2>
+
+      <motion.div
+        className="market-tam"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 60 }}
+      >
+        <span className="market-number">
+          $<AnimatedNumber value={50} delay={400} />B
+        </span>
+        <span className="market-label">Total Addressable Market</span>
+      </motion.div>
+
+      <div className="market-details">
+        <motion.div className="market-detail-card" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+          <span className="market-detail-number">32%</span>
+          <span className="market-detail-label">CAGR through 2033</span>
+        </motion.div>
+        <motion.div className="market-detail-card" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+          <span className="market-detail-number">$4.5B</span>
+          <span className="market-detail-label">AI Video Market 2025</span>
+        </motion.div>
+        <motion.div className="market-detail-card" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
+          <span className="market-detail-number">41%</span>
+          <span className="market-detail-label">North America Share</span>
+        </motion.div>
+      </div>
+
+      <motion.p
+        className="market-positioning"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4 }}
+      >
+        AI-powered video prospecting is experiencing explosive growth.
+        <br />
+        Vimero is uniquely positioned to capture this wave.
+      </motion.p>
+    </div>
+  );
+}
+
+/* ---------- Slide 7: The Stack (vertical flowchart) ---------- */
 const FLOW_STEPS = [
   { step: "Upload CSV", external: null, convex: "ACID Mutations", isTerminal: true },
   { step: "Research", external: "rtrvr.ai", convex: "HTTP Actions" },
@@ -295,6 +458,8 @@ const SLIDES = [
   SlideRealtimePipeline,
   SlideScriptGeneration,
   SlideGeneratedAssets,
+  SlideResults,
+  SlideMarket,
   SlideTheStack,
 ];
 
@@ -363,7 +528,7 @@ export default function DemoPage() {
             transition={{ duration: 0.4 }}
           >
             <h1>Vimero</h1>
-            <p>AI-generated personalized sales videos in under 90 seconds.</p>
+            <p className="demo-title-tagline">Generate 5x More Revenue</p>
             <motion.button
               className="demo-play-btn"
               onClick={startPlayback}
