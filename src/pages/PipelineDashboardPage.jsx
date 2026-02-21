@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import ConvexBadge from "../components/ConvexBadge";
 
 const STAGE_DURATION_MS = 1800;
 
@@ -49,6 +50,10 @@ function PipelineDashboardPage({
   return (
     <section className="panel page-panel">
       <h2>Pipeline Dashboard (Real Time)</h2>
+      <div className="page-badges">
+        <ConvexBadge feature="real-time-query" />
+        <ConvexBadge feature="durable-workflow" />
+      </div>
 
       <div className="row selector-row">
         <label htmlFor="pipeline-campaign">Campaign</label>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ConvexBadge from "../components/ConvexBadge";
 
 function emptyForm() {
   return { name: "", sender: "", brief: "", prospectsCsv: "" };
@@ -68,6 +69,10 @@ function CampaignManagerPage({
   return (
     <section className="panel page-panel">
       <h2>Campaign Manager (CRUD)</h2>
+      <div className="page-badges">
+        <ConvexBadge feature="acid-mutation" />
+        <ConvexBadge feature="http-actions" />
+      </div>
       <form className="form-grid" onSubmit={submit}>
         <input
           placeholder="Campaign name"

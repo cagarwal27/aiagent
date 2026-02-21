@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import ConvexBadge from "../components/ConvexBadge";
 
 function stageLabel(index, stages) {
   return stages[index].replace("_", " ").replace(/\b\w/g, (m) => m.toUpperCase());
@@ -35,6 +36,10 @@ function GalleryPage({
   return (
     <section className="panel page-panel gallery-page">
       <h2>Gallery</h2>
+      <div className="page-badges">
+        <ConvexBadge feature="file-storage" />
+        <ConvexBadge feature="real-time-query" />
+      </div>
 
       <div className="gallery-controls">
         <div className="row selector-row">

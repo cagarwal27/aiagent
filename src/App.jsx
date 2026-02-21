@@ -1,97 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import DemoPage from "./pages/DemoPage";
 import CampaignManagerPage from "./pages/CampaignManagerPage";
 import PipelineDashboardPage from "./pages/PipelineDashboardPage";
 import GalleryPage from "./pages/GalleryPage";
+import {
+  STAGES,
+  makeProspect,
+  seedCampaigns,
+  nextStage,
+  getNextCampaignId,
+} from "./lib/mockData";
 
-const STAGES = ["queued", "researching", "scripting", "generating_voice", "generating_visuals", "complete"];
-const SAMPLE_VIDEO = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
-const SAMPLE_AUDIO = "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3";
-
-let campaignCounter = 3;
-let prospectCounter = 8;
-
-function createImageSvgDataUrl(label, bg, fg) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'>
-<defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0%' stop-color='${bg}'/><stop offset='100%' stop-color='${fg}'/></linearGradient></defs>
-<rect width='100%' height='100%' fill='url(#g)'/>
-<text x='50%' y='50%' text-anchor='middle' fill='white' font-size='58' font-family='Trebuchet MS, sans-serif'>${label}</text>
-</svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
-function makeProspect(name, company, stage = 0) {
-  const now = Date.now();
-  prospectCounter += 1;
-  return {
-    id: `p-${prospectCounter}`,
-    name,
-    company,
-    stage,
-    updatedAt: now,
-    stageStartedAt: now,
-    assets: {
-      images: [
-        {
-          id: `img-${prospectCounter}-1`,
-          type: "image",
-          label: "Scene 1 Hook",
-          url: createImageSvgDataUrl(`${company} Hook`, "#005f73", "#0a9396"),
-        },
-        {
-          id: `img-${prospectCounter}-2`,
-          type: "image",
-          label: "Scene 2 Pain + Solution",
-          url: createImageSvgDataUrl(`${company} Solution`, "#9b2226", "#ee9b00"),
-        },
-      ],
-      audio: {
-        id: `aud-${prospectCounter}`,
-        type: "audio",
-        label: "Narration Track",
-        url: SAMPLE_AUDIO,
-      },
-      video: {
-        id: `vid-${prospectCounter}`,
-        type: "video",
-        label: "Narrated Slideshow Preview",
-        url: SAMPLE_VIDEO,
-      },
-    },
-  };
-}
-
-function seedCampaigns() {
-  return [
-    {
-      id: "c-1",
-      name: "Fintech Outbound - Q1",
-      sender: "Sarah from Acme",
-      brief: "Target compliance pain and speed-to-market blockers.",
-      prospects: [
-        makeProspect("Ava Reynolds", "Northstar Fintech", 5),
-        makeProspect("Liam Chen", "Ledgerflow", 4),
-        makeProspect("Maya Patel", "Trailbank", 2),
-      ],
-      createdAt: Date.now() - 1000 * 60 * 80,
-    },
-    {
-      id: "c-2",
-      name: "DevTools Expansion",
-      sender: "Noah from OrbitOps",
-      brief: "Focus on velocity, incident prevention, and platform reliability.",
-      prospects: [
-        makeProspect("Sofia Torres", "UnitScale", 1),
-        makeProspect("Ethan Brooks", "Paycove", 3),
-      ],
-      createdAt: Date.now() - 1000 * 60 * 45,
-    },
-  ];
-}
-
-function nextStage(current) {
-  if (current >= STAGES.length - 1) return current;
-  return Math.random() > 0.45 ? current + 1 : current;
+function FloatingHomeButton() {
+  const location = useLocation();
+  if (location.pathname === "/" || location.pathname === "/demo") return null;
+  return (
+    <Link to="/" className="floating-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    </Link>
+  );
 }
 
 function App() {
@@ -151,8 +83,7 @@ function App() {
   );
 
   const onCreateCampaign = async (payload) => {
-    campaignCounter += 1;
-    const newId = `c-${campaignCounter}`;
+    const newId = getNextCampaignId();
     await new Promise((resolve) => setTimeout(resolve, 3200));
     const lines = payload.prospectsCsv
       .split("\n")
@@ -212,36 +143,11 @@ function App() {
 
   return (
     <BrowserRouter>
+      <FloatingHomeButton />
       <main className="app-shell">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">ProspectClip Ops</p>
-            <h1>Sales Video Workflow Console</h1>
-          </div>
-          <div className="topbar-actions">
-            <nav className="nav-tabs">
-              <NavLink to="/campaigns">Campaign Manager</NavLink>
-              <NavLink to="/pipeline">Pipeline Dashboard</NavLink>
-              <NavLink to="/gallery">Gallery</NavLink>
-            </nav>
-          </div>
-        </header>
-
         <Routes>
-          <Route
-            path="/"
-            element={
-              <CampaignManagerPage
-                campaigns={campaigns}
-                activeCampaignId={activeCampaign?.id ?? null}
-                onActiveCampaignChange={setActiveCampaignId}
-                onSelectedProspectChange={setSelectedProspectId}
-                onCreateCampaign={onCreateCampaign}
-                onUpdateCampaign={onUpdateCampaign}
-                onDeleteCampaign={onDeleteCampaign}
-              />
-            }
-          />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/demo" element={<DemoPage />} />
           <Route
             path="/campaigns"
             element={
