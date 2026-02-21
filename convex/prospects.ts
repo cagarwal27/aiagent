@@ -1,15 +1,68 @@
-// =============================================================================
-// PROSPECTS — Stub mutations/queries needed by the script agent.
-// Owner: Person 1 (Convex Core). These are MINIMAL stubs for Person 3.
-// Person 1 should expand with full CRUD, status transitions, etc.
-// =============================================================================
-
-import { internalQuery, internalMutation } from "./_generated/server";
+import {
+  query,
+  internalQuery,
+  internalMutation,
+} from "./_generated/server";
 import { v } from "convex/values";
 
-// ---------------------------------------------------------------------------
-// Queries
-// ---------------------------------------------------------------------------
+// === PUBLIC QUERIES (Person 4 frontend) ===
+
+export const getById = query({
+  args: { prospectId: v.id("prospects") },
+  handler: async (ctx, { prospectId }) => {
+    return await ctx.db.get(prospectId);
+  },
+});
+
+export const getByCampaign = query({
+  args: { campaignId: v.id("campaigns") },
+  handler: async (ctx, { campaignId }) => {
+    return await ctx.db
+      .query("prospects")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
+      .collect();
+  },
+});
+
+export const getByCampaignAndStatus = query({
+  args: { campaignId: v.id("campaigns"), status: v.string() },
+  handler: async (ctx, { campaignId, status }) => {
+    return await ctx.db
+      .query("prospects")
+      .withIndex("by_campaign_status", (q) =>
+        q.eq("campaignId", campaignId).eq("status", status)
+      )
+      .collect();
+  },
+});
+
+export const getWithAssetUrls = query({
+  args: { prospectId: v.id("prospects") },
+  handler: async (ctx, { prospectId }) => {
+    const prospect = await ctx.db.get(prospectId);
+    if (!prospect) return null;
+
+    const resolvedAssets = await Promise.all(
+      (prospect.sceneAssets ?? []).map(async (asset) => {
+        const [imageUrl, voiceUrl, videoUrl] = await Promise.all([
+          asset.imageFileId ? ctx.storage.getUrl(asset.imageFileId) : null,
+          asset.voiceFileId ? ctx.storage.getUrl(asset.voiceFileId) : null,
+          asset.videoFileId ? ctx.storage.getUrl(asset.videoFileId) : null,
+        ]);
+        return {
+          sceneNumber: asset.sceneNumber,
+          imageUrl: imageUrl ?? undefined,
+          voiceUrl: voiceUrl ?? undefined,
+          videoUrl: videoUrl ?? undefined,
+        };
+      })
+    );
+
+    return { ...prospect, resolvedAssets };
+  },
+});
+
+// === INTERNAL QUERIES (Person 3 agent + workflow) ===
 
 /** Get a prospect by ID. Used by writeScript to pre-fetch context. */
 export const get = internalQuery({
@@ -19,9 +72,44 @@ export const get = internalQuery({
   },
 });
 
-// ---------------------------------------------------------------------------
-// Mutations
-// ---------------------------------------------------------------------------
+export const getResearch = internalQuery({
+  args: { prospectId: v.id("prospects") },
+  handler: async (ctx, { prospectId }) => {
+    const prospect = await ctx.db.get(prospectId);
+    return prospect?.researchData ?? null;
+  },
+});
+
+// === INTERNAL MUTATIONS (workflow + Person 2 + Person 3) ===
+
+/** Update prospect pipeline status. Called by workflow. */
+export const updateStatus = internalMutation({
+  args: {
+    prospectId: v.id("prospects"),
+    status: v.string(),
+    error: v.optional(v.string()),
+  },
+  handler: async (ctx, { prospectId, status, error }) => {
+    const updates: Record<string, unknown> = { status };
+    if (error !== undefined) updates.error = error;
+    if (status === "complete") updates.completedAt = Date.now();
+    await ctx.db.patch(prospectId, updates);
+  },
+});
+
+export const markFailed = internalMutation({
+  args: { prospectId: v.id("prospects"), error: v.string() },
+  handler: async (ctx, { prospectId, error }) => {
+    await ctx.db.patch(prospectId, { status: "failed", error });
+  },
+});
+
+export const saveResearch = internalMutation({
+  args: { prospectId: v.id("prospects"), researchData: v.string() },
+  handler: async (ctx, { prospectId, researchData }) => {
+    await ctx.db.patch(prospectId, { researchData });
+  },
+});
 
 /** Save the generated script to a prospect record. Called by the agent's saveScript tool. */
 export const saveScript = internalMutation({
@@ -55,17 +143,39 @@ export const saveThreadId = internalMutation({
   },
 });
 
-/** Update prospect pipeline status. Called by workflow. */
-export const updateStatus = internalMutation({
+export const saveSceneAsset = internalMutation({
   args: {
     prospectId: v.id("prospects"),
-    status: v.string(),
-    error: v.optional(v.string()),
+    sceneNumber: v.number(),
+    type: v.string(),
+    fileId: v.id("_storage"),
   },
-  handler: async (ctx, { prospectId, status, error }) => {
-    const patch: Record<string, unknown> = { status };
-    if (error !== undefined) patch.error = error;
-    if (status === "complete") patch.completedAt = Date.now();
-    await ctx.db.patch(prospectId, patch);
+  handler: async (ctx, { prospectId, sceneNumber, type, fileId }) => {
+    const prospect = await ctx.db.get(prospectId);
+    if (!prospect) throw new Error("Prospect not found");
+
+    const sceneAssets = prospect.sceneAssets ?? [];
+    const existingIndex = sceneAssets.findIndex(
+      (a) => a.sceneNumber === sceneNumber
+    );
+
+    if (existingIndex >= 0) {
+      const existing = sceneAssets[existingIndex];
+      sceneAssets[existingIndex] = {
+        ...existing,
+        ...(type === "image" ? { imageFileId: fileId } : {}),
+        ...(type === "video" ? { videoFileId: fileId } : {}),
+        ...(type === "voice" ? { voiceFileId: fileId } : {}),
+      };
+    } else {
+      sceneAssets.push({
+        sceneNumber,
+        imageFileId: type === "image" ? fileId : undefined,
+        videoFileId: type === "video" ? fileId : undefined,
+        voiceFileId: type === "voice" ? fileId : undefined,
+      });
+    }
+
+    await ctx.db.patch(prospectId, { sceneAssets });
   },
 });
