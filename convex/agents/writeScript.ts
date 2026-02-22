@@ -1,28 +1,14 @@
 // =============================================================================
-// WRITE SCRIPT — The internalAction that the workflow calls to generate a
-// personalized script for one prospect.
-// Owner: Person 3 (Script Agent)
+// WRITE SCRIPT — Direct API call to MiniMax (no agent tool-calling).
 //
-// Called by: workflow.ts step 2 (Person 1)
-//   await step.runAction(internal.agents.writeScript.writeScript, { prospectId, campaignId })
-//
-// What it does:
-//   1. Pre-fetches ALL context (prospect + campaign) for reliability
-//   2. Creates a persistent agent thread
-//   3. Saves threadId to the prospect (so frontend can subscribe to streaming)
-//   4. Runs the agent with delta streaming (text appears word-by-word in UI)
-//   5. Verifies the script was saved (safety check for demo reliability)
-//
-// DESIGN DECISION: We pre-fetch data and pass it in the prompt rather than
-// having the agent call tools to read it. This reduces tool calls from 3+
-// to just 1 (saveScript), making the flow far more reliable for the demo.
-// The agent still uses the tool framework (saveScript) to persist output.
+// The agent approach was unreliable — MiniMax M2.1 intermittently fails to
+// call the saveScript tool. For hackathon reliability, we make a direct
+// chat completion call, ask for JSON output, parse it, and save directly.
 // =============================================================================
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { scriptAgent } from "./scriptAgent";
 
 export const writeScript = internalAction({
   args: {
@@ -30,150 +16,160 @@ export const writeScript = internalAction({
     campaignId: v.id("campaigns"),
   },
   handler: async (ctx, { prospectId, campaignId }) => {
-    // -----------------------------------------------------------------
-    // 1. Pre-fetch all context
-    // -----------------------------------------------------------------
-    // Doing this HERE (not in the agent via tools) means:
-    //   - Fewer tool calls = fewer failure points
-    //   - Faster execution (no agent round-trips to fetch data)
-    //   - The agent focuses solely on writing + saving
-    // -----------------------------------------------------------------
-
     const prospect = await ctx.runQuery(internal.prospects.get, {
       id: prospectId,
     });
-    if (!prospect) {
-      throw new Error(`Prospect ${prospectId} not found`);
-    }
+    if (!prospect) throw new Error(`Prospect ${prospectId} not found`);
 
     const campaign = await ctx.runQuery(internal.campaigns.get, {
       id: campaignId,
     });
-    if (!campaign) {
-      throw new Error(`Campaign ${campaignId} not found`);
+    if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
+
+    const apiKey = process.env.MINIMAX_API_KEY;
+    if (!apiKey) throw new Error("Missing MINIMAX_API_KEY");
+
+    const researchSection = prospect.researchData
+      ? prospect.researchData
+      : `No research data available. Use what you can infer from the company name "${prospect.company}".`;
+
+    const systemPrompt = `You are a world-class sales video scriptwriter. You write personalized 45-60 second B2B outreach scripts.
+
+You MUST respond with ONLY valid JSON — no markdown, no backticks, no explanation. Just the JSON object.
+
+The JSON must have this exact shape:
+{
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "narration": "spoken text for scene 1",
+      "visualPrompt": "image generation prompt for scene 1",
+      "durationSeconds": 12
+    },
+    {
+      "sceneNumber": 2,
+      "narration": "spoken text for scene 2",
+      "visualPrompt": "image generation prompt for scene 2",
+      "durationSeconds": 15
+    },
+    {
+      "sceneNumber": 3,
+      "narration": "spoken text for scene 3",
+      "visualPrompt": "image generation prompt for scene 3",
+      "durationSeconds": 10
     }
+  ],
+  "fullNarration": "all narrations joined together"
+}
 
-    // -----------------------------------------------------------------
-    // 2. Create a persistent thread for this prospect
-    // -----------------------------------------------------------------
-    // The thread stores the conversation history. If we ever want to
-    // let users "edit" or "regenerate" a script, we can continue the
-    // same thread with follow-up prompts.
-    // -----------------------------------------------------------------
+Script rules:
+- Scene 1 (Hook): Address prospect by name, reference their company research
+- Scene 2 (Pain+Solution): Name a pain point, position sender's product as solution
+- Scene 3 (CTA): Reference their company, end with low-friction CTA
+- Total narration UNDER 150 words
+- Narration is PLAIN SPOKEN TEXT — no markdown, no asterisks, no stage directions
+- visualPrompt: detailed image prompts, NO text in images, NO real person names
+- durationSeconds: ~2.5 words per second`;
 
-    const { threadId } = await scriptAgent.createThread(ctx, {});
+    const userPrompt = `Write a script for this prospect:
 
-    // -----------------------------------------------------------------
-    // 3. Save thread ID to the prospect
-    // -----------------------------------------------------------------
-    // The frontend subscribes to this threadId for delta streaming.
-    // As the agent writes, text appears word-by-word in the UI.
-    // -----------------------------------------------------------------
-
-    await ctx.runMutation(internal.prospects.saveThreadId, {
-      prospectId,
-      threadId,
-    });
-
-    // -----------------------------------------------------------------
-    // 4. Build the prompt with all context baked in
-    // -----------------------------------------------------------------
-    // Everything the agent needs is right here. No tool calls to fetch.
-    // The only tool call it makes is saveScript at the end.
-    // -----------------------------------------------------------------
-
-    const prompt = buildPrompt(prospect, campaign, prospectId);
-
-    // -----------------------------------------------------------------
-    // 5. Run the agent with delta streaming
-    // -----------------------------------------------------------------
-    // saveStreamDeltas: streams chunks to the DB as they generate
-    // chunking: "word" — splits on word boundaries (smooth reading)
-    // throttleMs: 100 — writes at most every 100ms (good balance of
-    //   real-time feel vs. write volume)
-    // -----------------------------------------------------------------
-
-    await scriptAgent.streamText(
-      ctx,
-      { threadId },
-      {
-        prompt,
-        ...({ maxSteps: 4 } as any),
-      },
-      {
-        saveStreamDeltas: {
-          chunking: "word",
-          throttleMs: 100,
-        },
-      }
-    );
-
-    // -----------------------------------------------------------------
-    // 6. Safety check: verify the script was saved
-    // -----------------------------------------------------------------
-    // If the agent completed without calling saveScript, the workflow
-    // will proceed to voice generation and fail. Catching it here
-    // gives a clear error message and allows the workflow to retry.
-    // -----------------------------------------------------------------
-
-    const updated = await ctx.runQuery(internal.prospects.get, {
-      id: prospectId,
-    });
-    if (!updated?.script) {
-      throw new Error(
-        "Script agent completed but did not call saveScript. " +
-          "The pipeline cannot continue without a saved script. " +
-          "This may indicate a model/tool-calling issue."
-      );
-    }
-  },
-});
-
-// ---------------------------------------------------------------------------
-// Prompt builder — assembles all context into a clear, structured prompt
-// ---------------------------------------------------------------------------
-
-function buildPrompt(
-  prospect: {
-    name: string;
-    company: string;
-    title?: string | null;
-    researchData?: string | null;
-  },
-  campaign: {
-    senderName: string;
-    senderCompany: string;
-    senderCompanyInfo: string;
-    brief: string;
-  },
-  prospectId: string
-): string {
-  const researchSection = prospect.researchData
-    ? prospect.researchData
-    : `No research data available. Use what you can infer from the company name "${prospect.company}" and write a plausible script. Focus on common pain points for companies like theirs.`;
-
-  return `Write a personalized sales video script for this prospect.
-
-=== PROSPECT ===
-Name: ${prospect.name}
-Company: ${prospect.company}
+Prospect: ${prospect.name} at ${prospect.company}
 Title: ${prospect.title || "not specified"}
 
-Company Research:
+Research:
 ${researchSection}
 
-=== SENDER (who this video is from) ===
-Name: ${campaign.senderName}
-Company: ${campaign.senderCompany}
-Product / Value Prop: ${campaign.senderCompanyInfo}
+Sender: ${campaign.senderName} from ${campaign.senderCompany}
+Product: ${campaign.senderCompanyInfo}
+Brief: ${campaign.brief}
 
-=== CAMPAIGN BRIEF ===
-${campaign.brief}
+Respond with ONLY the JSON object. No other text.`;
 
-=== INSTRUCTIONS ===
-Write the 3-scene script (Hook, Pain+Solution, CTA), then you MUST call the saveScript tool with:
-- prospectId: "${prospectId}"
-- scenes: array of 3 scene objects
+    console.log(`[writeScript] Calling MiniMax for prospect ${prospectId}`);
 
-IMPORTANT: After drafting the script, you MUST call the saveScript tool. The entire pipeline depends on it. If you do not call saveScript, the video cannot be generated. Draft the script, then IMMEDIATELY call saveScript.`;
-}
+    const response = await fetch("https://api.minimax.io/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "MiniMax-M2.1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`MiniMax returned ${response.status}: ${body}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error(
+        `MiniMax returned no content: ${JSON.stringify(data).slice(0, 500)}`
+      );
+    }
+
+    console.log(`[writeScript] Got response, parsing JSON...`);
+
+    // Strip markdown code fences if the model wraps in ```json
+    const cleaned = content
+      .replace(/^```(?:json)?\s*\n?/i, "")
+      .replace(/\n?```\s*$/i, "")
+      .trim();
+
+    let script;
+    try {
+      script = JSON.parse(cleaned);
+    } catch (e) {
+      throw new Error(
+        `Failed to parse script JSON: ${(e as Error).message}\nRaw: ${cleaned.slice(0, 500)}`
+      );
+    }
+
+    // Validate structure
+    if (!script.scenes || !Array.isArray(script.scenes) || script.scenes.length < 1) {
+      throw new Error(`Invalid script structure: ${JSON.stringify(script).slice(0, 500)}`);
+    }
+
+    // Ensure fullNarration exists
+    if (!script.fullNarration) {
+      script.fullNarration = script.scenes.map((s: any) => s.narration).join(" ");
+    }
+
+    // Ensure all required fields exist on each scene
+    for (const scene of script.scenes) {
+      if (!scene.sceneNumber || !scene.narration || !scene.visualPrompt) {
+        throw new Error(`Scene missing required fields: ${JSON.stringify(scene)}`);
+      }
+      if (!scene.durationSeconds) {
+        scene.durationSeconds = Math.ceil(scene.narration.split(/\s+/).length / 2.5);
+      }
+    }
+
+    console.log(`[writeScript] Saving script with ${script.scenes.length} scenes`);
+
+    await ctx.runMutation(internal.prospects.saveScript, {
+      prospectId,
+      script: {
+        scenes: script.scenes.map((s: any) => ({
+          sceneNumber: s.sceneNumber,
+          narration: s.narration,
+          visualPrompt: s.visualPrompt,
+          durationSeconds: s.durationSeconds,
+        })),
+        fullNarration: script.fullNarration,
+      },
+    });
+
+    console.log(`[writeScript] Script saved for prospect ${prospectId}`);
+  },
+});
