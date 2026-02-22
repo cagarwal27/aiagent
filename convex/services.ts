@@ -24,6 +24,7 @@ export const scrapeProspect = internalAction({
       },
       body: JSON.stringify({
         urls: [prospect.url],
+        input: "Extract company description, what they do, recent news, key products, target customers, and any pain points or challenges mentioned. Focus on information useful for a sales outreach conversation.",
         response: { inlineOutputMaxBytes: 1048576 },
       }),
     });

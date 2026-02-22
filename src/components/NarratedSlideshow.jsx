@@ -5,9 +5,14 @@ export default function NarratedSlideshow({ scenes, autoPlay = false }) {
   const [playing, setPlaying] = useState(autoPlay);
   const [fadeClass, setFadeClass] = useState("slide-visible");
   const timerRef = useRef(null);
+  const audioRef = useRef(null);
 
   const advanceScene = useCallback(() => {
     setFadeClass("slide-hidden");
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setTimeout(() => {
       setCurrentScene((prev) => {
         const next = prev + 1;
@@ -24,11 +29,21 @@ export default function NarratedSlideshow({ scenes, autoPlay = false }) {
   useEffect(() => {
     if (!playing) {
       clearTimeout(timerRef.current);
+      if (audioRef.current) audioRef.current.pause();
       return;
     }
+    const scene = scenes[currentScene];
+    if (!scene) return;
+
+    // Play audio if available
+    if (scene.audioUrl && audioRef.current) {
+      audioRef.current.src = scene.audioUrl;
+      audioRef.current.play().catch(() => {});
+    }
+
     timerRef.current = setTimeout(() => {
       advanceScene();
-    }, scenes[currentScene]?.duration ?? 4000);
+    }, scene.duration ?? 4000);
     return () => clearTimeout(timerRef.current);
   }, [playing, currentScene, scenes, advanceScene]);
 
@@ -47,6 +62,7 @@ export default function NarratedSlideshow({ scenes, autoPlay = false }) {
           <p>{scene.narration}</p>
         </div>
       </div>
+      <audio ref={audioRef} style={{ display: "none" }} />
       <div className="slideshow-controls">
         <button type="button" className="slideshow-play" onClick={togglePlay}>
           {playing ? "Pause" : "Play"}
@@ -57,6 +73,10 @@ export default function NarratedSlideshow({ scenes, autoPlay = false }) {
               key={i}
               className={`slideshow-dot ${i === currentScene ? "active" : ""}`}
               onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                  audioRef.current.currentTime = 0;
+                }
                 setFadeClass("slide-hidden");
                 setTimeout(() => {
                   setCurrentScene(i);

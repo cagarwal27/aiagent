@@ -6,6 +6,7 @@ import {
 } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { workflow } from "./workflowInit";
 
 // === PUBLIC QUERIES (Person 4 frontend) ===
 
@@ -130,8 +131,6 @@ export const launch = mutation({
     }
 
     await ctx.db.patch(campaignId, { status: "running" });
-
-    const { workflow } = await import("./workflowInit");
 
     const prospects = await ctx.db
       .query("prospects")

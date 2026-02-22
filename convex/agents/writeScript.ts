@@ -98,6 +98,7 @@ export const writeScript = internalAction({
       { threadId },
       {
         prompt,
+        ...({ maxSteps: 4 } as any),
       },
       {
         saveStreamDeltas: {
@@ -170,9 +171,9 @@ Product / Value Prop: ${campaign.senderCompanyInfo}
 ${campaign.brief}
 
 === INSTRUCTIONS ===
-Write the 3-scene script (Hook, Pain+Solution, CTA), then call saveScript with:
+Write the 3-scene script (Hook, Pain+Solution, CTA), then you MUST call the saveScript tool with:
 - prospectId: "${prospectId}"
 - scenes: array of 3 scene objects
 
-Draft the script text naturally first (it streams live to the viewer), then save the structured version.`;
+IMPORTANT: After drafting the script, you MUST call the saveScript tool. The entire pipeline depends on it. If you do not call saveScript, the video cannot be generated. Draft the script, then IMMEDIATELY call saveScript.`;
 }
