@@ -68,8 +68,30 @@ Script rules:
 - Scene 3 (CTA): Reference their company, end with low-friction CTA
 - Total narration UNDER 150 words
 - Narration is PLAIN SPOKEN TEXT — no markdown, no asterisks, no stage directions
-- visualPrompt: detailed image prompts, NO text in images, NO real person names
-- durationSeconds: ~2.5 words per second`;
+- durationSeconds: ~2.5 words per second
+
+## VISUAL PROMPT RULES (CRITICAL — read carefully)
+
+Each visualPrompt is sent to an AI image generator (MiniMax image-01) to create a cinematic background frame for that scene. Think of these as B-roll shots in a professional video — atmospheric, beautiful, and relevant.
+
+GOOD prompts describe a REAL PHYSICAL SCENE a camera could photograph:
+- "Close-up of hands typing on a laptop in a sunlit modern office, shallow depth of field, warm golden hour light through floor-to-ceiling windows, blurred city skyline in background"
+- "Aerial view of a bustling tech campus at dusk, glass buildings reflecting sunset, people walking between buildings, cinematic wide shot"
+- "A confident professional walking through a bright open-plan office, motion blur, natural light, clean minimal design, shot from behind"
+
+BAD prompts (NEVER do these):
+- Abstract concepts: "data streams", "neural networks", "digital transformation"
+- UI elements: "split screen", "dashboard showing metrics", "email inbox"
+- Icons/graphics: "calendar icon", "play button", "handshake graphic"
+- Text/logos: "company logo", "text saying...", "banner with words"
+- Vague: "professional business setting", "modern technology"
+
+Each scene's visual should match the MOOD, not literally illustrate every word:
+- Scene 1 (Hook): Their industry/world — what does their company's environment LOOK like?
+- Scene 2 (Pain+Solution): The transformation — from frustration to ease, from chaos to clarity
+- Scene 3 (CTA): Warm, human, inviting — a real moment of connection
+
+Keep a consistent cinematic style across all 3 scenes. Specify: subject, setting, lighting, camera angle, color palette.`;
 
     const userPrompt = `Write a script for this prospect:
 
@@ -120,8 +142,9 @@ Respond with ONLY the JSON object. No other text.`;
 
     console.log(`[writeScript] Got response, parsing JSON...`);
 
-    // Strip markdown code fences if the model wraps in ```json
+    // Strip <think>...</think> reasoning blocks and markdown code fences
     const cleaned = content
+      .replace(/<think>[\s\S]*?<\/think>/gi, "")
       .replace(/^```(?:json)?\s*\n?/i, "")
       .replace(/\n?```\s*$/i, "")
       .trim();
