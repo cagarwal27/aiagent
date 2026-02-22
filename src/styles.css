@@ -2445,6 +2445,24 @@ img {
   font-style: italic;
 }
 
+.tryit-prefill {
+  background: transparent;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.tryit-prefill:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+
 .tryit-error {
   color: var(--danger);
   font-size: 14px;

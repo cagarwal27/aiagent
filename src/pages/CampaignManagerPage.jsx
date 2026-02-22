@@ -84,6 +84,16 @@ function CampaignManagerPage() {
           set={set}
           onSubmit={handleGenerate}
           error={error}
+          onPrefill={() =>
+            setForm({
+              senderName: "Chaitanya",
+              senderCompany: "Vimero",
+              pitch: "AI-generated personal sales videos that you send to prospects to 3x your pipeline",
+              prospectName: "Arjun",
+              prospectCompany: "Rtrvr",
+              prospectUrl: "https://www.rtrvr.ai/team",
+            })
+          }
         />
       )}
 
@@ -105,7 +115,7 @@ function CampaignManagerPage() {
 }
 
 // ─── State 1: Input Form ─────────────────────────────────────────────
-function FormState({ form, set, onSubmit, error }) {
+function FormState({ form, set, onSubmit, error, onPrefill }) {
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -117,6 +127,9 @@ function FormState({ form, set, onSubmit, error }) {
 
   return (
     <form className="tryit-form" onSubmit={handleSubmit}>
+      <button type="button" className="tryit-prefill" onClick={onPrefill} disabled={submitting}>
+        Fill with demo data
+      </button>
       <fieldset className="tryit-fieldset" disabled={submitting}>
         <legend className="tryit-legend">What are you selling?</legend>
         <div className="tryit-row">
