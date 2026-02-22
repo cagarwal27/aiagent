@@ -300,7 +300,8 @@ function ProgressState({ campaignId, onComplete }) {
 // ─── State 3: Result Gallery ─────────────────────────────────────────
 function ResultState({ prospectId, onReset }) {
   const data = useQuery(api.prospects.getWithAssetUrls, { prospectId });
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentScene, setCurrentScene] = useState(0);
+  const audioRef = useRef(null);
 
   if (!data) {
     return (
@@ -310,12 +311,32 @@ function ResultState({ prospectId, onReset }) {
     );
   }
 
-  const images = (data.resolvedAssets || [])
-    .filter((a) => a.imageUrl)
-    .sort((a, b) => a.sceneNumber - b.sceneNumber);
+  // Build per-scene data: image + audio + narration linked together
+  const scenes = (data.script?.scenes || [])
+    .sort((a, b) => a.sceneNumber - b.sceneNumber)
+    .map((scene) => {
+      const asset = (data.resolvedAssets || []).find(
+        (a) => a.sceneNumber === scene.sceneNumber
+      );
+      return {
+        ...scene,
+        imageUrl: asset?.imageUrl,
+        voiceUrl: asset?.voiceUrl,
+        videoUrl: asset?.videoUrl,
+      };
+    });
 
-  const audioAsset = (data.resolvedAssets || []).find((a) => a.voiceUrl);
-  const videoAsset = (data.resolvedAssets || []).find((a) => a.videoUrl);
+  const scene = scenes[currentScene];
+  const sceneLabels = ["Hook", "Pain + Solution", "Call to Action"];
+
+  // When scene changes, update audio
+  const goToScene = (i) => {
+    setCurrentScene(i);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.load();
+    }
+  };
 
   return (
     <div className="tryit-result">
@@ -324,48 +345,46 @@ function ResultState({ prospectId, onReset }) {
         {data.company ? ` — ${data.company}` : ""}
       </h2>
 
-      {/* Video player if available */}
-      {videoAsset && (
-        <div className="tryit-video-wrap">
-          <video controls src={videoAsset.videoUrl} />
-        </div>
-      )}
+      {scene && (
+        <div className="tryit-scene">
+          {/* Scene image */}
+          {scene.imageUrl && (
+            <div className="tryit-scene-visual">
+              <img src={scene.imageUrl} alt={`Scene ${scene.sceneNumber}`} />
+              <div className="tryit-scene-overlay">
+                <span className="tryit-scene-badge">
+                  Scene {scene.sceneNumber} — {sceneLabels[currentScene] || ""}
+                </span>
+              </div>
+            </div>
+          )}
 
-      {/* Image slideshow */}
-      {images.length > 0 && !videoAsset && (
-        <div className="tryit-slideshow">
-          <div className="tryit-slide-display">
-            <img
-              src={images[currentSlide]?.imageUrl}
-              alt={`Scene ${images[currentSlide]?.sceneNumber}`}
-            />
+          {/* Scene narration text */}
+          <div className="tryit-scene-narration">
+            <p>{scene.narration}</p>
           </div>
-          {images.length > 1 && (
-            <div className="tryit-slide-nav">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  className={`tryit-slide-dot ${i === currentSlide ? "active" : ""}`}
-                  onClick={() => setCurrentSlide(i)}
-                />
-              ))}
+
+          {/* Scene audio */}
+          {scene.voiceUrl && (
+            <div className="tryit-audio-wrap">
+              <audio ref={audioRef} controls src={scene.voiceUrl} />
             </div>
           )}
         </div>
       )}
 
-      {/* Audio */}
-      {audioAsset && (
-        <div className="tryit-audio-wrap">
-          <audio controls src={audioAsset.voiceUrl} />
-        </div>
-      )}
-
-      {/* Script */}
-      {data.script && (
-        <div className="tryit-script">
-          <h3>Script</h3>
-          <p>{data.script?.fullNarration ?? JSON.stringify(data.script)}</p>
+      {/* Scene navigation */}
+      {scenes.length > 1 && (
+        <div className="tryit-scene-nav">
+          {scenes.map((s, i) => (
+            <button
+              key={i}
+              className={`tryit-scene-tab ${i === currentScene ? "active" : ""}`}
+              onClick={() => goToScene(i)}
+            >
+              Scene {s.sceneNumber}
+            </button>
+          ))}
         </div>
       )}
 
