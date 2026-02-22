@@ -97,15 +97,27 @@ export const create = mutation({
         email: v.optional(v.string()),
       })
     ),
+    source: v.optional(v.string()),
+    icpFilters: v.optional(
+      v.object({
+        titles: v.optional(v.array(v.string())),
+        industries: v.optional(v.array(v.string())),
+        employeeRanges: v.optional(v.array(v.string())),
+        locations: v.optional(v.array(v.string())),
+        limit: v.optional(v.number()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
-    const { prospects: prospectList, ...campaignData } = args;
+    const { prospects: prospectList, source, icpFilters, ...campaignData } = args;
 
     const campaignId = await ctx.db.insert("campaigns", {
       ...campaignData,
       status: "draft",
       totalProspects: prospectList.length,
       completedProspects: 0,
+      source,
+      icpFilters,
     });
 
     for (const prospect of prospectList) {
@@ -149,7 +161,60 @@ export const launch = mutation({
   },
 });
 
-// === INTERNAL MUTATIONS (called by workflow) ===
+// === INTERNAL MUTATIONS (called by workflow + actions) ===
+
+/** Internal version of create, callable from actions (e.g., apollo.createCampaignFromICP). */
+export const createFromAction = internalMutation({
+  args: {
+    name: v.string(),
+    brief: v.string(),
+    senderName: v.string(),
+    senderCompany: v.string(),
+    senderCompanyInfo: v.string(),
+    voiceId: v.string(),
+    prospects: v.array(
+      v.object({
+        name: v.string(),
+        company: v.string(),
+        title: v.optional(v.string()),
+        url: v.string(),
+        email: v.optional(v.string()),
+      })
+    ),
+    source: v.optional(v.string()),
+    icpFilters: v.optional(
+      v.object({
+        titles: v.optional(v.array(v.string())),
+        industries: v.optional(v.array(v.string())),
+        employeeRanges: v.optional(v.array(v.string())),
+        locations: v.optional(v.array(v.string())),
+        limit: v.optional(v.number()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { prospects: prospectList, source, icpFilters, ...campaignData } = args;
+
+    const campaignId = await ctx.db.insert("campaigns", {
+      ...campaignData,
+      status: "draft",
+      totalProspects: prospectList.length,
+      completedProspects: 0,
+      source,
+      icpFilters,
+    });
+
+    for (const prospect of prospectList) {
+      await ctx.db.insert("prospects", {
+        campaignId,
+        ...prospect,
+        status: "queued",
+      });
+    }
+
+    return campaignId;
+  },
+});
 
 export const incrementCompleted = internalMutation({
   args: { campaignId: v.id("campaigns") },

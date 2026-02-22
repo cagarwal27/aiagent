@@ -11,6 +11,7 @@
 import type * as agents_queries from "../agents/queries.js";
 import type * as agents_scriptAgent from "../agents/scriptAgent.js";
 import type * as agents_writeScript from "../agents/writeScript.js";
+import type * as apollo from "../apollo.js";
 import type * as campaigns from "../campaigns.js";
 import type * as files from "../files.js";
 import type * as generationJobs from "../generationJobs.js";
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   "agents/queries": typeof agents_queries;
   "agents/scriptAgent": typeof agents_scriptAgent;
   "agents/writeScript": typeof agents_writeScript;
+  apollo: typeof apollo;
   campaigns: typeof campaigns;
   files: typeof files;
   generationJobs: typeof generationJobs;

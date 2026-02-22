@@ -12,6 +12,16 @@ export default defineSchema({
     status: v.string(),
     totalProspects: v.number(),
     completedProspects: v.number(),
+    source: v.optional(v.string()), // "apollo" | "manual"
+    icpFilters: v.optional(
+      v.object({
+        titles: v.optional(v.array(v.string())),
+        industries: v.optional(v.array(v.string())),
+        employeeRanges: v.optional(v.array(v.string())),
+        locations: v.optional(v.array(v.string())),
+        limit: v.optional(v.number()),
+      })
+    ),
   }).index("by_status", ["status"]),
 
   prospects: defineTable({
