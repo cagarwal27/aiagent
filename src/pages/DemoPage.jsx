@@ -6,11 +6,12 @@ import { api } from "../../convex/_generated/api";
 import NarratedSlideshow from "../components/NarratedSlideshow";
 import { STAGES, SAMPLE_SCENES, createImageSvgDataUrl } from "../lib/mockData";
 
-const SLIDE_COUNT = 8;
+const SLIDE_COUNT = 9;
 
 /* ===== Convex features per slide (null = no strip) ===== */
 const SLIDE_CONVEX_FEATURES = [
   null,                                          // Problem — no tech
+  null,                                          // Solution — no tech
   "ACID Mutations · HTTP Actions",               // Upload
   "Durable Workflows · Real-time Queries",       // Pipeline
   "Agent · Delta Streaming · Vector Search",     // Script
@@ -156,6 +157,70 @@ function SlideTheProblem() {
         transition={{ delay: 2.0 }}
       >
         Your reps are drowning in research. Their emails are being ignored.
+      </motion.p>
+    </div>
+  );
+}
+
+/* ---------- Slide 0.5: The Solution (mirrors problem format) ---------- */
+function SlideSolution() {
+  const steps = [
+    {
+      icon: "🔍",
+      title: "AI-Powered Research",
+      description: "Deep prospect research in seconds, not hours",
+      detail: "Company intel, pain points, and personalization angles — automatically",
+      delay: 400,
+    },
+    {
+      icon: "🎬",
+      title: "Personalized Video for Every Prospect",
+      description: "Unique script, voice, and visuals per contact",
+      detail: "Not templates — truly 1:1 personalized outreach at scale",
+      delay: 800,
+    },
+    {
+      icon: "⚡",
+      title: "90 Seconds, Zero Manual Work",
+      description: "From CSV upload to send-ready video",
+      detail: "Fully automated pipeline — research, script, voice, images",
+      delay: 1200,
+    },
+  ];
+
+  return (
+    <div className="demo-slide demo-slide--solution">
+      <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        Enter Vimero
+      </motion.h2>
+      <div className="solution-stack">
+        {steps.map((step, i) => (
+          <motion.div
+            key={i}
+            className="solution-step-card"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 + i * 0.35, type: "spring", stiffness: 80 }}
+          >
+            {i > 0 && <div className="solution-connector" />}
+            <div className="solution-step-inner">
+              <span className="solution-icon">{step.icon}</span>
+              <div className="solution-text">
+                <span className="solution-title">{step.title}</span>
+                <span className="solution-description">{step.description}</span>
+                <span className="solution-detail">{step.detail}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      <motion.p
+        className="solution-tagline"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.0 }}
+      >
+        Your reps sell. Vimero does the rest.
       </motion.p>
     </div>
   );
@@ -547,6 +612,7 @@ function SlideTheStack() {
 /* ---------- Main DemoPage ---------- */
 const SLIDES = [
   SlideTheProblem,
+  SlideSolution,
   SlideUploadAndGo,
   SlideRealtimePipeline,
   SlideScriptGeneration,
