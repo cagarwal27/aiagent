@@ -12,12 +12,12 @@ const SLIDE_COUNT = 9;
 const SLIDE_CONVEX_FEATURES = [
   null,                                          // Problem — no tech
   null,                                          // Solution — no tech
+  null,                                          // Market — no tech
   "ACID Mutations · HTTP Actions",               // Upload
   "Durable Workflows · Real-time Queries",       // Pipeline
   "Agent · Delta Streaming · Vector Search",     // Script
   "File Storage",                                // Assets
   null,                                          // Results — no tech
-  null,                                          // Market — no tech
   null,                                          // Stack — features are in the flowchart
 ];
 
@@ -613,12 +613,12 @@ function SlideTheStack() {
 const SLIDES = [
   SlideTheProblem,
   SlideSolution,
+  SlideMarket,
   SlideUploadAndGo,
   SlideRealtimePipeline,
   SlideScriptGeneration,
   SlideGeneratedAssets,
   SlideResults,
-  SlideMarket,
   SlideTheStack,
 ];
 
