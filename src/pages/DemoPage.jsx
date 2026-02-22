@@ -419,7 +419,7 @@ function SlideGeneratedAssets({ demoProspect }) {
 function SlideResults() {
   const rows = [
     { before: "70%", beforeLabel: "time on non-selling tasks", after: "Instant", afterLabel: "AI-powered research", badge: "Time Saved" },
-    { before: "<1%", beforeLabel: "cold email reply rate", after: "30%", afterLabel: "video reply rate", badge: "30x" },
+    { before: "<1%", beforeLabel: "cold email reply rate", after: "10%", afterLabel: "video reply rate", badge: "10x" },
     { before: "$50K", beforeLabel: "pipeline per quarter", after: "$250K", afterLabel: "pipeline per quarter", badge: "5x Revenue" },
   ];
 
