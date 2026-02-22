@@ -398,15 +398,17 @@ function SlideMarket() {
   );
 }
 
-/* ---------- Slide 7: The Stack (vertical flowchart) ---------- */
-const FLOW_STEPS = [
-  { step: "Upload CSV", external: null, convex: "ACID Mutations", isTerminal: true },
+/* ---------- Slide 7: The Stack (spine layout) ---------- */
+const SPINE_STEPS = [
+  { step: "Upload CSV", external: null, convex: "ACID Mutations" },
   { step: "Research", external: "rtrvr.ai", convex: "HTTP Actions" },
   { step: "Script", external: "MiniMax M2.5", convex: "Agent + Streaming" },
   { step: "Voice", external: "ElevenLabs", convex: "File Storage" },
   { step: "Visuals", external: "MiniMax image-01", convex: "File Storage" },
-  { step: "Video Ready", external: null, convex: "Real-time Queries", isTerminal: true },
+  { step: "Video Ready", external: null, convex: "Real-time Queries" },
 ];
+
+const CONVEX_FEATURE_COUNT = new Set(SPINE_STEPS.map((s) => s.convex)).size;
 
 function SlideTheStack() {
   return (
@@ -414,39 +416,59 @@ function SlideTheStack() {
       <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         The Stack
       </motion.h2>
-      <motion.div
-        className="sponsor-badges"
-        style={{ marginBottom: 18 }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <span className="sponsor-badge">Convex</span>
-        <span className="sponsor-badge">MiniMax</span>
-        <span className="sponsor-badge">ElevenLabs</span>
-        <span className="sponsor-badge">rtrvr.ai</span>
-        <span className="sponsor-badge">Speechmatics</span>
-      </motion.div>
-      <div className="demo-flowchart">
-        {FLOW_STEPS.map((s, i) => (
+
+      {/* --- Spine layout: external (left) · convex spine (center) · step labels (right) --- */}
+      <div className="stack-spine-wrapper">
+        {SPINE_STEPS.map((s, i) => (
           <motion.div
             key={i}
-            className="demo-flow-step"
-            initial={{ opacity: 0, y: 15 }}
+            className="stack-spine-row"
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.25 }}
+            transition={{ delay: 0.25 + i * 0.18 }}
           >
-            {i > 0 && <div className="demo-flow-connector" />}
-            <div className={`demo-flow-node ${s.isTerminal ? "demo-flow-node-start" : ""}`}>
-              <span className="demo-flow-step-label">{s.step}</span>
-              <div className="demo-flow-tags">
-                {s.external && <span className="demo-flow-api-tag">{s.external}</span>}
-                <span className="demo-flow-convex-tag">{s.convex}</span>
-              </div>
+            {/* Left: external API (or empty) */}
+            <div className="stack-spoke stack-spoke--left">
+              {s.external && (
+                <>
+                  <span className="stack-spoke-label">{s.external}</span>
+                  <span className="stack-spoke-line" />
+                </>
+              )}
             </div>
+
+            {/* Center: Convex spine node */}
+            <div className="stack-spine-node">
+              <span className="stack-spine-step">{s.step}</span>
+              <span className="stack-spine-feature">{s.convex}</span>
+            </div>
+
+            {/* Connector to next node */}
+            {i < SPINE_STEPS.length - 1 && (
+              <div className="stack-spine-connector" />
+            )}
           </motion.div>
         ))}
+
+        {/* Vertical glow line behind nodes */}
+        <motion.div
+          className="stack-spine-line"
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
+        />
       </div>
+
+      {/* --- Feature tally --- */}
+      <motion.div
+        className="stack-tally"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.6 }}
+      >
+        <span className="stack-tally-number">{CONVEX_FEATURE_COUNT}</span>
+        <span className="stack-tally-label">distinct Convex features across {SPINE_STEPS.length} pipeline steps</span>
+      </motion.div>
     </div>
   );
 }

@@ -1599,6 +1599,144 @@ img {
   border-radius: 1px;
 }
 
+/* ===== Stack Spine Layout ===== */
+.stack-spine-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 8px 0;
+}
+
+/* Glowing vertical line behind all nodes */
+.stack-spine-line {
+  position: absolute;
+  top: 20px;
+  bottom: 60px;
+  left: 50%;
+  width: 2px;
+  transform-origin: top;
+  background: linear-gradient(
+    to bottom,
+    rgba(245, 158, 11, 0.05),
+    rgba(245, 158, 11, 0.25) 15%,
+    rgba(245, 158, 11, 0.25) 85%,
+    rgba(245, 158, 11, 0.05)
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stack-spine-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  z-index: 1;
+  gap: 0;
+  padding: 6px 0;
+}
+
+/* --- Center: spine node --- */
+.stack-spine-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: var(--glass-bg);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 12px;
+  padding: 8px 18px;
+  min-width: 160px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.06);
+}
+
+.stack-spine-step {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.stack-spine-feature {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+/* --- Connector between nodes --- */
+.stack-spine-connector {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 2px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: rgba(245, 158, 11, 0.2);
+  z-index: 0;
+}
+
+/* --- Left spoke (external API) --- */
+.stack-spoke {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.stack-spoke--left {
+  justify-content: flex-end;
+  gap: 0;
+  padding-right: 0;
+}
+
+.stack-spoke-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.stack-spoke-line {
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: linear-gradient(to right, rgba(255,255,255,0.08), rgba(245,158,11,0.25));
+  flex-shrink: 0;
+}
+
+/* --- Feature tally --- */
+.stack-tally {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.stack-tally-number {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.stack-tally-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 @keyframes sweep {
   0% { background-position: 0% 0%; }
   100% { background-position: 200% 0%; }
