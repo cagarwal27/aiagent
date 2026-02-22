@@ -228,10 +228,12 @@ function SlideSolution() {
 
 /* ---------- Slide 1: Upload & Go (animated typing) ---------- */
 const UPLOAD_FIELDS = [
-  { label: "Campaign Name", text: "Fintech Outbound - Q1", tall: false },
-  { label: "Sender Persona", text: "Sarah from Acme", tall: false },
-  { label: "Campaign Brief", text: "Target compliance pain and speed-to-market blockers for fintech leaders.", tall: true },
-  { label: "Prospects CSV", text: "Ava Reynolds, Northstar Fintech\nLiam Chen, Ledgerflow\nMaya Patel, Trailbank", tall: true },
+  { label: "Your Name", text: "Chaitanya", tall: false },
+  { label: "Your Company", text: "Vimero", tall: false },
+  { label: "Your Pitch", text: "AI-generated personal sales videos that you send to prospects to 3x your pipeline", tall: true },
+  { label: "Their Name", text: "Arjun", tall: false },
+  { label: "Their Company", text: "Rtrvr", tall: false },
+  { label: "Company Website", text: "https://www.rtrvr.ai/team", tall: false },
 ];
 
 function SlideUploadAndGo() {
@@ -285,7 +287,7 @@ function SlideUploadAndGo() {
           whileTap={{ scale: 0.97 }}
           type="button"
         >
-          Launch Campaign
+          Generate Personalized Video
         </motion.button>
       )}
     </div>
