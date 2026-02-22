@@ -5,8 +5,9 @@ Uses rtrvr.ai to deep scan a prospect and their company,
 summarizes findings with MiniMax M2.5, and generates a personalized sales pitch.
 
 Outputs:
-    output.txt  - Full intel report (summary + pitch)
-    pitch.txt   - Clean standalone pitch
+    output.txt        - Full intel report (summary + pitch + video prompt)
+    pitch.txt         - Clean standalone pitch
+    video_prompt.txt  - Video generation input (3 scenes: narration + visual prompts)
 
 Environment variables required:
     RTRVR_API_KEY    - rtrvr.ai API key
@@ -193,23 +194,27 @@ def generate_pitch(summary: str, product_description: str) -> str:
                 "role": "user",
                 "content": (
                     f"Using the prospect research below, write a compelling personalized "
-                    f"sales pitch.\n\n"
+                    f"sales pitch formatted as an email.\n\n"
                     f"Rules:\n"
+                    f"- Start with 'Hi [First Name],' using their ACTUAL first name from the research\n"
                     f"- Reference SPECIFIC details about the prospect's company "
-                    f"(name, products, recent news)\n"
+                    f"(company name, products, recent news)\n"
+                    f"- Mention the prospect BY NAME and their ROLE/TITLE naturally in the body\n"
                     f"- Identify a pain point relevant to THEIR situation\n"
                     f"- Position the product as the solution to that specific pain\n"
                     f"- Keep it concise: 150-200 words max\n"
                     f"- Tone: professional, warm, not pushy\n"
                     f"- Include a clear low-friction CTA (15-min call, quick demo)\n"
                     f"- NO filler phrases like 'I hope this finds you well'\n"
-                    f"- Start with a hook that shows you've done your homework\n\n"
+                    f"- Write it as a ready-to-send email (greeting, body, sign-off)\n\n"
                     f"Structure:\n"
-                    f"1. Hook — reference something specific about them/their company\n"
-                    f"2. Pain — a challenge they likely face\n"
-                    f"3. Solution — how the product solves that pain\n"
-                    f"4. Proof — a brief credibility point\n"
-                    f"5. CTA — clear, easy next step\n\n"
+                    f"1. Greeting — 'Hi [First Name],'\n"
+                    f"2. Hook — reference something specific about them/their company\n"
+                    f"3. Pain — a challenge they likely face\n"
+                    f"4. Solution — how the product solves that pain\n"
+                    f"5. Proof — a brief credibility point\n"
+                    f"6. CTA — clear, easy next step\n"
+                    f"7. Sign-off\n\n"
                     f"---\n"
                     f"PROSPECT RESEARCH:\n{summary}\n\n"
                     f"---\n"
@@ -222,6 +227,84 @@ def generate_pitch(summary: str, product_description: str) -> str:
     pitch = strip_think_tags(response.choices[0].message.content)
     print("    Pitch generated.\n")
     return pitch
+
+
+def generate_video_prompt(summary: str, pitch: str, product_description: str) -> str:
+    """
+    Use MiniMax M2.5 to generate a 3-scene video generation input document.
+
+    Each scene has:
+      - NARRATION : what the AI voice speaks aloud
+      - VISUAL    : detailed prompt for the video generation model (what to show on screen)
+      - DURATION  : estimated seconds
+
+    Scene structure:
+      Scene 1 — Hook       : prospect's name + one specific company detail
+      Scene 2 — Pain+Fix   : their pain point + Vimero as the solution
+      Scene 3 — CTA        : warm close, company name, clear next step
+    """
+    print("[4/4] Generating video prompt with MiniMax M2.5 ...")
+
+    client = get_minimax_client()
+
+    response = client.chat.completions.create(
+        model="MiniMax-M2.5",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a sales video director and scriptwriter. "
+                    "You write precise video generation inputs: narration scripts for AI voiceover "
+                    "and detailed visual prompts for an AI video generation model. "
+                    "Every scene is grounded in real prospect research — nothing generic."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Using the prospect research and pitch below, write a 3-scene video generation input.\n\n"
+                    f"For each scene provide:\n"
+                    f"  NARRATION - the exact words the AI voice will speak (plain text, no markdown)\n"
+                    f"  VISUAL    - a detailed prompt for the video generation model describing:\n"
+                    f"              subject, setting, lighting, camera angle, color palette, mood.\n"
+                    f"              No text overlays, no logos, no real person faces. Cinematic style.\n"
+                    f"  DURATION  - estimated seconds (narration at ~2.5 words/sec)\n\n"
+                    f"Scene rules:\n"
+                    f"  Scene 1 - Hook (10-15s): Address prospect by first name. Reference one SPECIFIC "
+                    f"detail from their research (recent news, product launch, or challenge). "
+                    f"Show genuine knowledge of their world.\n"
+                    f"  Scene 2 - Pain + Solution (20-25s): Name one concrete pain point from their "
+                    f"research. Then show how the product solves exactly that pain. Be specific.\n"
+                    f"  Scene 3 - CTA (10-15s): Warm, confident close. Mention their company name. "
+                    f"One clear low-friction ask (15-min call or quick demo).\n\n"
+                    f"Total narration must be under 150 words.\n\n"
+                    f"Format your response EXACTLY like this — no extra commentary:\n\n"
+                    f"SCENE 1 — HOOK\n"
+                    f"DURATION  : [Xs]\n"
+                    f"NARRATION : [spoken words]\n"
+                    f"VISUAL    : [video generation prompt]\n\n"
+                    f"SCENE 2 — PAIN + SOLUTION\n"
+                    f"DURATION  : [Xs]\n"
+                    f"NARRATION : [spoken words]\n"
+                    f"VISUAL    : [video generation prompt]\n\n"
+                    f"SCENE 3 — CTA\n"
+                    f"DURATION  : [Xs]\n"
+                    f"NARRATION : [spoken words]\n"
+                    f"VISUAL    : [video generation prompt]\n\n"
+                    f"---\n"
+                    f"PROSPECT RESEARCH:\n{summary}\n\n"
+                    f"---\n"
+                    f"PITCH (use this as the messaging guide):\n{pitch}\n\n"
+                    f"---\n"
+                    f"PRODUCT:\n{product_description}"
+                ),
+            },
+        ],
+    )
+
+    video_prompt = strip_think_tags(response.choices[0].message.content)
+    print("    Video prompt generated.\n")
+    return video_prompt
 
 
 def main():
@@ -240,9 +323,11 @@ def main():
     research_data = research_person(EMAIL)
     summary = summarize_research(research_data, EMAIL)
     pitch = generate_pitch(summary, PRODUCT)
+    video_prompt = generate_video_prompt(summary, pitch, PRODUCT)
 
+    # ── output.txt — full intel report ───────────────────────────────────
     with open("output.txt", "w", encoding="utf-8") as f:
-        f.write(f"PROSPECT INTEL REPORT\n")
+        f.write("PROSPECT INTEL REPORT\n")
         f.write(f"Email: {EMAIL}\n")
         f.write("=" * 70 + "\n\n")
         f.write(summary)
@@ -250,15 +335,28 @@ def main():
         f.write("GENERATED PITCH (see pitch.txt for clean version)\n")
         f.write("=" * 70 + "\n\n")
         f.write(pitch)
+        f.write("\n\n" + "=" * 70 + "\n")
+        f.write("VIDEO GENERATION INPUT (see video_prompt.txt for clean version)\n")
+        f.write("=" * 70 + "\n\n")
+        f.write(video_prompt)
+    print("Intel report saved  -> output.txt")
 
-    print("Intel report saved -> output.txt")
-
+    # ── pitch.txt — clean pitch only ─────────────────────────────────────
     with open("pitch.txt", "w", encoding="utf-8") as f:
         f.write(pitch)
+    print("Pitch saved         -> pitch.txt")
 
-    print("Pitch saved        -> pitch.txt")
-    print("\n--- PITCH PREVIEW ---\n")
-    print(pitch)
+    # ── video_prompt.txt — video generation input ─────────────────────────
+    with open("video_prompt.txt", "w", encoding="utf-8") as f:
+        f.write(f"VIDEO GENERATION INPUT\n")
+        f.write(f"Prospect : {EMAIL}\n")
+        f.write(f"Product  : Vimero\n")
+        f.write("=" * 70 + "\n\n")
+        f.write(video_prompt)
+    print("Video prompt saved  -> video_prompt.txt")
+
+    print("\n--- VIDEO PROMPT PREVIEW ---\n")
+    print(video_prompt)
 
 
 if __name__ == "__main__":
