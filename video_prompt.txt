@@ -1,0 +1,19 @@
+VIDEO GENERATION INPUT
+Prospect : satya@microsoft.com
+Product  : Vimero
+======================================================================
+
+SCENE 1 — HOOK
+DURATION : 12s
+NARRATION : Satya, with Microsoft leading the enterprise AI charge through Copilot and Azure AI, it's clear you're transforming how businesses work. The challenge now is helping enterprises actually adopt and scale these AI tools across their organizations.
+VISUAL    : A contemplative view of a modern executive office at dusk, soft amber desk lamp light illuminating a sleek workspace. Camera angle: medium shot from behind a glass wall, looking toward a large window with distant city lights. Color palette: deep navy blues, warm amber highlights, dark wood tones. Mood: professional, reflective, intelligent. No text overlays.
+
+SCENE 2 — PAIN + SOLUTION
+DURATION : 22s
+NARRATION : The reality is, many AI initiatives still struggle to gain traction with enterprise buyers. That's exactly where Vimero comes in. We use AI to create hyper-personalized video outreach at scale—researching each prospect, crafting tailored scripts, and generating professional AI-narrated videos that feel genuinely individual. Sales teams using Vimero book 5x more meetings than with traditional email. The reason this matters for Microsoft: companies seeing results from tools like Vimero become believers in AI adoption—exactly the momentum you need for Copilot and Azure.
+VISUAL    : A split-screen visualization showing chaotic abstract data streams on the left transforming into organized, flowing patterns on the right. Camera angle: dynamic tracking shot moving through a space with floating holographic business icons. Color palette: cool teal and electric blue transitioning to warm gold and white. Mood: technological, forward-moving, transformative. No text overlays.
+
+SCENE 3 — CTA
+DURATION : 12s
+NARRATION : I'd love to show you a quick 15-minute demo of how Vimero works and discuss potential integration opportunities with Microsoft Teams or Dynamics 365. Would you be open to a brief call next week?
+VISUAL    : A warm, inviting view of a modern meeting space with soft natural lighting from floor-to-ceiling windows. A clean surface with two coffee cups suggests conversation. Camera angle: slight low angle, close-up on the empty chair across from the viewer, inviting them to sit. Color palette: soft whites, warm grays, subtle blue accents. Mood: approachable, confident, welcoming. No text overlays.
